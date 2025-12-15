@@ -1,0 +1,59 @@
+
+
+project_id = "your-project-id"
+region     = "europe-west3"
+zone       = "europe-west3-a"
+
+
+vpc_config = {
+  name           = "dpg-lab"
+  subnet_cidr    = "10.10.10.0/24"
+  enable_nat     = true
+  enable_iap_ssh = true
+}
+
+
+cluster_nodes = {
+  enabled      = true
+  master_count = 3
+  worker_count = 3
+  machine_type = "e2-standard-2"
+  disk_size_gb = 20
+  disk_type    = "pd-standard"
+  image        = "projects/debian-cloud/global/images/family/debian-12"
+}
+
+
+standalone_vms = [
+  {
+    name         = "bastion"
+    machine_type = "e2-small"
+    disk_size_gb = 10
+  },
+  {
+    name         = "vault"
+    machine_type = "e2-medium"
+    disk_size_gb = 50
+  },
+  {
+    name = "jump-server"
+    # it will take from deffault variables 
+  }
+]
+
+
+standalone_defaults = {
+  machine_type = "e2-medium"
+  disk_size_gb = 20
+  disk_type    = "pd-standard"
+  image        = "projects/debian-cloud/global/images/family/debian-12"
+}
+
+common_tags = ["iap-ssh"]
+
+common_labels = {
+  managed_by  = "terraform"
+  project     = "dpg-lab"
+  environment = "development"
+}
+

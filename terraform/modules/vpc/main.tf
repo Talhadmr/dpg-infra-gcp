@@ -5,18 +5,18 @@ resource "google_compute_network" "vpc" {
 }
 
 resource "google_compute_subnetwork" "subnet" {
-  name          = "${var.project_name}-vpc"
+  name          = "${var.project_name}-subnet"
   region        = var.region
   network       = google_compute_network.vpc.id
-  ip_cidr_range = "10.10.10.0/24"
+  ip_cidr_range = var.subnet_cidr
 }
 
 resource "google_compute_firewall" "allow_internal" {
-  name    = "allow-internal"
+  name    = "${var.project_name}-allow-internal"
   network = google_compute_network.vpc.name
 
   direction     = "INGRESS"
-  source_ranges = ["10.10.10.0/24"]
+  source_ranges = [var.subnet_cidr]
 
   allow {
     protocol = "tcp"
@@ -32,11 +32,13 @@ resource "google_compute_firewall" "allow_internal" {
 }
 
 resource "google_compute_firewall" "allow_iap_ssh" {
-  name    = "allow-iap-ssh"
+  count = var.enable_iap_ssh ? 1 : 0
+
+  name    = "${var.project_name}-allow-iap-ssh"
   network = google_compute_network.vpc.name
 
   direction     = "INGRESS"
-  source_ranges = ["35.235.240.0/20"]
+  source_ranges = ["35.235.240.0/20"] # Google IAP range
   target_tags   = ["iap-ssh"]
 
   allow {
@@ -46,14 +48,18 @@ resource "google_compute_firewall" "allow_iap_ssh" {
 }
 
 resource "google_compute_router" "router" {
-  name    = "demo-router"
+  count = var.enable_nat ? 1 : 0
+
+  name    = "${var.project_name}-router"
   region  = var.region
   network = google_compute_network.vpc.id
 }
 
 resource "google_compute_router_nat" "nat" {
-  name                               = "demo-nat"
-  router                             = google_compute_router.router.name
+  count = var.enable_nat ? 1 : 0
+
+  name                               = "${var.project_name}-nat"
+  router                             = google_compute_router.router[0].name
   region                             = var.region
   nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
