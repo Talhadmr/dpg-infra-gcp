@@ -1,12 +1,9 @@
-.PHONY: help init plan apply destroy inventory setup-ssh ssh-bastion ssh-master ping deploy reset clean setup-kubespray kubeconfig kubectl
+.PHONY: help init plan apply destroy inventory setup-ssh ssh-bastion ssh-master ping deploy reset clean setup-kubespray kubeconfig setup-gcp haproxy renew-certs
 
-# Configuration
 ZONE ?= europe-west3-a
-ANSIBLE_USER ?= talha_demir_mail_gmail_com
 KUBESPRAY_VERSION ?= v2.25.0
-SSH_KEY ?= ~/.ssh/id_ed25519
 VENV ?= .venv
-
+ANSIBLE_USER ?= $(shell gcloud compute os-login describe-profile --format="value(posixAccounts[0].username)" 2>/dev/null || echo "debian")
 
 init:
 	terraform -chdir=./terraform init
@@ -61,6 +58,25 @@ ssh-master:
 		gcloud compute ssh master-01 --zone=$(ZONE) --tunnel-through-iap; \
 	fi
 
+setup-gcp:
+	@SSH_KEY=""; \
+	for key in $$HOME/.ssh/id_ed25519.pub $$HOME/.ssh/id_rsa.pub $$HOME/.ssh/id_ecdsa.pub; do \
+		if [ -f "$$key" ]; then SSH_KEY="$$key"; break; fi; \
+	done; \
+	if [ -z "$$SSH_KEY" ]; then \
+		echo "ERROR: No SSH public key found in ~/.ssh/"; \
+		exit 1; \
+	fi; \
+	echo "Found SSH key: $$SSH_KEY"; \
+	gcloud compute os-login ssh-keys add --key-file="$$SSH_KEY"; \
+	echo ""; \
+	echo "Adding IAM role..."; \
+	gcloud projects add-iam-policy-binding $$(gcloud config get-value project) \
+		--member="user:$$(gcloud config get-value account)" \
+		--role="roles/compute.osAdminLogin" --quiet; \
+	echo ""; \
+	echo "Done! Your OS Login username: $$(gcloud compute os-login describe-profile --format='value(posixAccounts[0].username)')"
+
 
 ping:
 	@if [ -d "$(VENV)" ]; then \
@@ -99,15 +115,42 @@ kubeconfig:
 	MASTER_IP=$$(terraform -chdir=./terraform output -json master_nodes 2>/dev/null | jq -r '."master-01".ip'); \
 	ssh -o StrictHostKeyChecking=no -J $(ANSIBLE_USER)@$$BASTION_IP $(ANSIBLE_USER)@$$MASTER_IP \
 		"sudo cat /etc/kubernetes/admin.conf" > kubeconfig/config; \
-	echo "Kubeconfig saved: kubeconfig/config"
+	BASTION_IP=$$(terraform -chdir=./terraform output -raw bastion_public_ip 2>/dev/null); \
+	sed -i '' "s|server: https://[0-9.]*:6443|server: https://$$BASTION_IP:6443|" kubeconfig/config; \
+	echo "Kubeconfig saved: kubeconfig/config (API: https://$$BASTION_IP:6443)"
 
-kubectl:
+haproxy:
+	@if [ -d "$(VENV)" ]; then \
+		$(VENV)/bin/ansible-playbook -i ansible/inventory/inventory.ini \
+			ansible/haproxy/playbook.yml \
+			--become --become-user=root \
+			-v; \
+	else \
+		ansible-playbook -i ansible/inventory/inventory.ini \
+			ansible/haproxy/playbook.yml \
+			--become --become-user=root \
+			-v; \
+	fi
+
+renew-certs: inventory
 	@BASTION_IP=$$(terraform -chdir=./terraform output -raw bastion_public_ip 2>/dev/null); \
-	MASTER_IP=$$(terraform -chdir=./terraform output -json master_nodes 2>/dev/null | jq -r '."master-01".ip'); \
-	echo "Opening SSH tunnel: localhost:6443 -> $$MASTER_IP:6443"; \
-	ssh -o StrictHostKeyChecking=no -N -L 6443:$$MASTER_IP:6443 -J $(ANSIBLE_USER)@$$BASTION_IP $(ANSIBLE_USER)@$$MASTER_IP
+	echo "==> Bastion IP: $$BASTION_IP"; \
+	echo "==> Regenerating API server certificates with new SAN..."; \
+	cd ansible && ../$(VENV)/bin/ansible -i inventory/inventory.ini kube_control_plane \
+		--become --become-user=root \
+		-m shell -a " \
+			rm -f /etc/kubernetes/pki/apiserver.* 2>/dev/null || true; \
+			kubeadm init phase certs apiserver --apiserver-cert-extra-sans=$$BASTION_IP; \
+			systemctl restart kubelet; \
+			sleep 5; \
+			crictl ps | grep kube-apiserver | awk '{print \$$1}' | xargs -r crictl stop; \
+		"; \
+	echo ""; \
+	echo "==> Done! Waiting for API server to restart..."; \
+	sleep 10
 
 clean:
 	rm -f artifacts/nodes.json
 	rm -f ansible/inventory/inventory.ini
 	rm -rf kubeconfig/
+	rm -rf ansible/inventory/group_vars/

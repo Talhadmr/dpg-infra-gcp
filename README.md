@@ -8,8 +8,8 @@ Terraform + Kubespray setup for deploying a Kubernetes cluster on Google Cloud P
 ┌─────────────────────────────────────────────────────────┐
 │                      GCP VPC                            │
 │  ┌─────────┐                                            │
-│  │ Bastion │◄── Public IP (SSH entry point)             │
-│  └────┬────┘                                            │
+│  │ Bastion │◄── Public IP + HAProxy (K8s API LB)        │
+│  └────┬────┘    Port 6443 → Masters                     │
 │       │                                                 │
 │       ▼                                                 │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐                  │
@@ -26,8 +26,20 @@ Terraform + Kubespray setup for deploying a Kubernetes cluster on Google Cloud P
 
 - Terraform
 - Python 3
-- gcloud CLI (authenticated)
+- gcloud CLI (authenticated with OS Login configured)
 - jq
+
+### GCP Setup (one-time per developer)
+
+```bash
+# Auto-detects your SSH key and configures OS Login
+make setup-gcp
+```
+
+This will:
+- Find your SSH public key (id_ed25519, id_rsa, or id_ecdsa)
+- Add it to GCP OS Login
+- Grant the required IAM role
 
 ## Quick Start
 
@@ -37,14 +49,17 @@ make init
 make apply
 
 # 2. Kubernetes
+make inventory
+make setup-ssh
 make setup-kubespray
 make deploy
 
-# 3. Access cluster
-make kubeconfig
-make kubectl  # Terminal 1: opens tunnel
+# 3. Setup HAProxy Load Balancer
+make renew-certs
+make haproxy
 
-# Terminal 2:
+# 4. Access cluster
+make kubeconfig
 export KUBECONFIG=$(pwd)/kubeconfig/config
 kubectl get nodes
 ```
@@ -67,6 +82,7 @@ kubectl get nodes
 | `make setup-kubespray` | Download Kubespray and create Python venv |
 | `make deploy` | Deploy Kubernetes cluster |
 | `make reset` | Reset/destroy Kubernetes (keeps VMs) |
+| `make haproxy` | Install HAProxy on bastion to expose K8s API |
 
 ### Access
 
@@ -75,12 +91,12 @@ kubectl get nodes
 | `make ssh-bastion` | SSH to bastion host |
 | `make ssh-master` | SSH to master-01 via bastion |
 | `make kubeconfig` | Fetch kubeconfig from cluster |
-| `make kubectl` | Open SSH tunnel for kubectl access |
 
 ### Utilities
 
 | Command | Description |
 |---------|-------------|
+| `make setup-gcp` | Configure OS Login (one-time per developer) |
 | `make inventory` | Regenerate Ansible inventory |
 | `make ping` | Test Ansible connectivity |
 | `make clean` | Remove generated files |
@@ -103,18 +119,26 @@ cluster_nodes = {
 
 ## Accessing the Cluster
 
-Since cluster nodes have private IPs only, you need an SSH tunnel:
+After deploying Kubernetes and HAProxy, the Kubernetes API is exposed through the bastion's public IP:
 
 ```bash
-# Terminal 1: Start tunnel
-make kubectl
+# Fetch and configure kubeconfig (auto-updates API server URL)
+make kubeconfig
 
-# Terminal 2: Use kubectl
+# Use kubectl
 export KUBECONFIG=$(pwd)/kubeconfig/config
 kubectl get nodes
 ```
 
-Alternatively, SSH to master and run kubectl there:
+The `make kubeconfig` command automatically configures the kubeconfig to use `https://<bastion-ip>:6443` as the API server.
+
+### HAProxy Stats
+
+HAProxy provides a stats page at `http://<bastion-ip>:8404/stats` for monitoring load balancer health.
+
+### Alternative: SSH to Master
+
+You can also SSH directly to a master and run kubectl there:
 
 ```bash
 make ssh-master
@@ -133,6 +157,7 @@ sudo kubectl get nodes
 │   ├── variables.tf
 │   └── terraform.tfvars
 ├── ansible/
+│   ├── haproxy/          # HAProxy playbook and templates
 │   ├── inventory/        # Generated inventory
 │   └── kubespray/        # Kubespray (git cloned)
 ├── tools/
@@ -146,6 +171,7 @@ sudo kubectl get nodes
 
 - All VMs use OS Login for SSH authentication
 - Bastion is the only VM with a public IP
+- HAProxy on bastion load balances Kubernetes API (port 6443) to masters
 - Cluster nodes are accessed via SSH ProxyJump through bastion
 - Kubespray runs in a Python venv (`.venv/`) for version compatibility
-
+- TODO: IP whitelisting for K8s API access (currently open to 0.0.0.0/0)

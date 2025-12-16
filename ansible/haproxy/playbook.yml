@@ -1,0 +1,38 @@
+---
+- name: Install and Configure HAProxy on Bastion
+  hosts: bastion
+  become: true
+  vars:
+    haproxy_frontend_port: 6443
+    haproxy_backend_port: 6443
+    haproxy_stats_port: 8404
+
+  tasks:
+    - name: Install HAProxy
+      ansible.builtin.apt:
+        name: haproxy
+        state: present
+        update_cache: true
+
+    - name: Create HAProxy configuration
+      ansible.builtin.template:
+        src: templates/haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: '0644'
+        backup: true
+      notify: Restart HAProxy
+
+    - name: Ensure HAProxy is enabled and started
+      ansible.builtin.systemd:
+        name: haproxy
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Restart HAProxy
+      ansible.builtin.systemd:
+        name: haproxy
+        state: restarted
+

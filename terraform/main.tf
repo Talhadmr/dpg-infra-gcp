@@ -13,6 +13,7 @@ module "vm" {
 
   subnetwork = module.vpc.subnetwork_self_link
   zone       = var.zone
+  region     = var.region
 
   tags   = var.common_tags
   labels = var.common_labels

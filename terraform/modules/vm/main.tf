@@ -76,6 +76,13 @@ resource "google_compute_instance" "cluster" {
   }
 }
 
+# Static IP for bastion 
+resource "google_compute_address" "bastion" {
+  count  = contains([for vm in var.standalone_vms : vm.name], "bastion") ? 1 : 0
+  name   = "bastion-ip"
+  region = var.region
+}
+
 resource "google_compute_instance" "standalone" {
   for_each = local.standalone_nodes
 
@@ -101,7 +108,8 @@ resource "google_compute_instance" "standalone" {
     dynamic "access_config" {
       for_each = each.value.public_ip ? [1] : []
       content {
-        // Ephemeral public IP
+        # Use static IP for bastion, ephemeral for others
+        nat_ip = each.key == "bastion" ? google_compute_address.bastion[0].address : null
       }
     }
   }

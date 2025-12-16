@@ -61,6 +61,21 @@ resource "google_compute_firewall" "allow_bastion_ssh" {
   }
 }
 
+# Allow Kubernetes API access through HAProxy on bastion
+resource "google_compute_firewall" "allow_k8s_api" {
+  name    = "${var.project_name}-allow-k8s-api"
+  network = google_compute_network.vpc.name
+
+  direction     = "INGRESS"
+  source_ranges = ["0.0.0.0/0"] # TODO: Replace with IP whitelist
+  target_tags   = ["bastion"]
+
+  allow {
+    protocol = "tcp"
+    ports    = ["6443"]
+  }
+}
+
 resource "google_compute_router" "router" {
   count = var.enable_nat ? 1 : 0
 

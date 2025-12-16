@@ -8,6 +8,11 @@ variable "zone" {
   type        = string
 }
 
+variable "region" {
+  description = "GCP region for static IPs"
+  type        = string
+}
+
 variable "tags" {
   description = "Network tags to apply to all VMs"
   type        = list(string)
