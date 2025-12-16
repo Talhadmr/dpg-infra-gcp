@@ -41,3 +41,8 @@ output "all_nodes" {
   value       = module.vm.all_nodes
 }
 
+output "bastion_public_ip" {
+  description = "Public IP of bastion host"
+  value       = module.vm.bastion_public_ip
+}
+

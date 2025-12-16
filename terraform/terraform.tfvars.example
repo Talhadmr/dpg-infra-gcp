@@ -29,6 +29,7 @@ standalone_vms = [
     name         = "bastion"
     machine_type = "e2-small"
     disk_size_gb = 10
+    public_ip    = true
   },
   {
     name         = "vault"

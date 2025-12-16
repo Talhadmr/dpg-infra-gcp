@@ -36,6 +36,7 @@ locals {
       image        = coalesce(vm.image, var.standalone_defaults.image)
       tags         = coalesce(vm.tags, var.tags)
       labels       = coalesce(vm.labels, var.labels)
+      public_ip    = coalesce(vm.public_ip, false)
     }
   }
 }
@@ -96,6 +97,13 @@ resource "google_compute_instance" "standalone" {
 
   network_interface {
     subnetwork = var.subnetwork
+
+    dynamic "access_config" {
+      for_each = each.value.public_ip ? [1] : []
+      content {
+        // Ephemeral public IP
+      }
+    }
   }
 
   metadata = {

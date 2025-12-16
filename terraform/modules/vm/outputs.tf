@@ -37,8 +37,9 @@ output "standalone_nodes" {
   value = {
     for name, instance in google_compute_instance.standalone :
     name => {
-      ip   = instance.network_interface[0].network_ip
-      zone = instance.zone
+      ip        = instance.network_interface[0].network_ip
+      public_ip = try(instance.network_interface[0].access_config[0].nat_ip, null)
+      zone      = instance.zone
     }
   }
 }
@@ -56,10 +57,21 @@ output "all_nodes" {
     {
       for name, instance in google_compute_instance.standalone :
       name => {
-        ip   = instance.network_interface[0].network_ip
-        role = "standalone"
+        ip        = instance.network_interface[0].network_ip
+        public_ip = try(instance.network_interface[0].access_config[0].nat_ip, null)
+        role      = "standalone"
       }
     }
+  )
+}
+
+output "bastion_public_ip" {
+  description = "Public IP of bastion host (if exists)"
+  value = try(
+    [for name, instance in google_compute_instance.standalone :
+      instance.network_interface[0].access_config[0].nat_ip
+    if name == "bastion"][0],
+    null
   )
 }
 
@@ -72,4 +84,5 @@ output "standalone_node_ips" {
   description = "List of all standalone VM IPs"
   value       = [for instance in google_compute_instance.standalone : instance.network_interface[0].network_ip]
 }
+
 

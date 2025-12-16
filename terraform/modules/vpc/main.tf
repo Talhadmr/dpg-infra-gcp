@@ -47,6 +47,20 @@ resource "google_compute_firewall" "allow_iap_ssh" {
   }
 }
 
+resource "google_compute_firewall" "allow_bastion_ssh" {
+  name    = "${var.project_name}-allow-bastion-ssh"
+  network = google_compute_network.vpc.name
+
+  direction     = "INGRESS"
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["bastion"]
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+}
+
 resource "google_compute_router" "router" {
   count = var.enable_nat ? 1 : 0
 

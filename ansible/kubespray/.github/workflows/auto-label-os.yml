@@ -1,0 +1,32 @@
+name: Issue labeler
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  label-component:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+      - name: Parse issue form
+        uses: stefanbuck/github-issue-parser@25f1485edffc1fee3ea68eb9f59a72e58720ffc4
+        id: issue-parser
+        with:
+          template-path: .github/ISSUE_TEMPLATE/bug-report.yaml
+
+      - name: Set labels based on OS field
+        uses: redhat-plumbers-in-action/advanced-issue-labeler@b80ae64e3e156e9c111b075bfa04b295d54e8e2e
+        with:
+          issue-form: ${{ steps.issue-parser.outputs.jsonString }}
+          section: os
+          block-list: |
+            None
+            Other
+          token: ${{ secrets.GITHUB_TOKEN }}

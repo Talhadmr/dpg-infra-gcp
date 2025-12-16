@@ -1,0 +1,44 @@
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: Which branch to update with new patch versions
+        default: master
+        required: true
+        type: string
+
+jobs:
+  update-patch-versions:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+      with:
+        ref: ${{ inputs.branch }}
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+    - run: pip install scripts/component_hash_update pre-commit
+    - run: update-hashes
+      env:
+        API_KEY: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/cache@v4
+      with:
+        key: pre-commit-hook-propagate
+        path: |
+          ~/.cache/pre-commit
+    - run: pre-commit run --all-files propagate-ansible-variables
+      continue-on-error: true
+    - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676
+      with:
+        commit-message: Patch versions updates
+        title: Patch versions updates - ${{ inputs.branch }}
+        labels: bot
+        branch: component_hash_update/${{ inputs.branch }}
+        sign-commits: true
+        body: |
+          /kind feature
+
+          ```release-note
+          NONE
+          ```

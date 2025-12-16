@@ -66,6 +66,7 @@ variable "standalone_vms" {
     image        = optional(string)
     tags         = optional(list(string))
     labels       = optional(map(string))
+    public_ip    = optional(bool, false)
   }))
   default = []
 }

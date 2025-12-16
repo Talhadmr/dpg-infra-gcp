@@ -1,5 +1,0 @@
-kube_version: v1.30.5
-container_manager: containerd
-kube_network_plugin: calico
-
-kubeconfig_localhost: true
