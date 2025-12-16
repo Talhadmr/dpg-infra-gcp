@@ -110,14 +110,13 @@ reset:
 all: init apply inventory setup-ssh
 
 kubeconfig:
-	@mkdir -p kubeconfig
 	@BASTION_IP=$$(terraform -chdir=./terraform output -raw bastion_public_ip 2>/dev/null); \
 	MASTER_IP=$$(terraform -chdir=./terraform output -json master_nodes 2>/dev/null | jq -r '."master-01".ip'); \
 	ssh -o StrictHostKeyChecking=no -J $(ANSIBLE_USER)@$$BASTION_IP $(ANSIBLE_USER)@$$MASTER_IP \
-		"sudo cat /etc/kubernetes/admin.conf" > kubeconfig/config; \
+		"sudo cat /etc/kubernetes/admin.conf" > artifacts/kubeconfig; \
 	BASTION_IP=$$(terraform -chdir=./terraform output -raw bastion_public_ip 2>/dev/null); \
-	sed -i '' "s|server: https://[0-9.]*:6443|server: https://$$BASTION_IP:6443|" kubeconfig/config; \
-	echo "Kubeconfig saved: kubeconfig/config (API: https://$$BASTION_IP:6443)"
+	sed -i '' "s|server: https://[0-9.]*:6443|server: https://$$BASTION_IP:6443|" artifacts/kubeconfig; \
+	echo "Kubeconfig saved: artifacts/kubeconfig (API: https://$$BASTION_IP:6443)"
 
 haproxy:
 	@if [ -d "$(VENV)" ]; then \
@@ -151,6 +150,6 @@ renew-certs: inventory
 
 clean:
 	rm -f artifacts/nodes.json
+	rm -f artifacts/kubeconfig
 	rm -f ansible/inventory/inventory.ini
-	rm -rf kubeconfig/
 	rm -rf ansible/inventory/group_vars/

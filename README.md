@@ -60,7 +60,7 @@ make haproxy
 
 # 4. Access cluster
 make kubeconfig
-export KUBECONFIG=$(pwd)/kubeconfig/config
+export KUBECONFIG=$(pwd)/artifacts/kubeconfig
 kubectl get nodes
 ```
 
@@ -83,6 +83,7 @@ kubectl get nodes
 | `make deploy` | Deploy Kubernetes cluster |
 | `make reset` | Reset/destroy Kubernetes (keeps VMs) |
 | `make haproxy` | Install HAProxy on bastion to expose K8s API |
+| `make renew-certs` | Regenerate API server certs with bastion IP |
 
 ### Access
 
@@ -126,7 +127,7 @@ After deploying Kubernetes and HAProxy, the Kubernetes API is exposed through th
 make kubeconfig
 
 # Use kubectl
-export KUBECONFIG=$(pwd)/kubeconfig/config
+export KUBECONFIG=$(pwd)/artifacts/kubeconfig
 kubectl get nodes
 ```
 
@@ -162,8 +163,7 @@ sudo kubectl get nodes
 │   └── kubespray/        # Kubespray (git cloned)
 ├── tools/
 │   └── generate-hosts.py # Inventory generator
-├── kubeconfig/           # Fetched kubeconfig
-├── artifacts/            # Terraform outputs
+├── artifacts/            # Generated files (nodes.json, kubeconfig)
 └── Makefile
 ```
 
