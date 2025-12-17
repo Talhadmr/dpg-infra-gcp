@@ -1,0 +1,83 @@
+---
+
+- name: Apply Bootstrap Application to ArgoCD
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('../../artifacts/kubeconfig', true) }}"
+    argocd_namespace: argocd
+    git_repo_url: "{{ lookup('env', 'GIT_REPO_URL') | default('https://github.com/Talhadmr/dpg-infra-gcp.git', true) }}"
+    git_target_revision: "{{ lookup('env', 'GIT_TARGET_REVISION') | default('HEAD', true) }}"
+
+  tasks:
+    - name: Wait for ArgoCD to be ready
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        kind: Deployment
+        namespace: "{{ argocd_namespace }}"
+        name: argocd-server
+        wait: true
+        wait_timeout: 300
+        wait_condition:
+          type: Available
+          status: "True"
+
+    - name: Create Bootstrap Application
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition:
+          apiVersion: argoproj.io/v1alpha1
+          kind: Application
+          metadata:
+            name: bootstrap
+            namespace: "{{ argocd_namespace }}"
+            labels:
+              app.kubernetes.io/name: bootstrap
+              app.kubernetes.io/part-of: gitops
+            finalizers:
+              - resources-finalizer.argocd.argoproj.io
+          spec:
+            project: default
+            source:
+              repoURL: "{{ git_repo_url }}"
+              targetRevision: "{{ git_target_revision }}"
+              path: ../../workloads/bootstrap
+              helm:
+                valueFiles:
+                  - values.yaml
+            destination:
+              server: https://kubernetes.default.svc
+              namespace: argocd
+            syncPolicy:
+              automated:
+                prune: true
+                selfHeal: true
+              syncOptions:
+                - CreateNamespace=true
+                - PruneLast=true
+              retry:
+                limit: 5
+                backoff:
+                  duration: 5s
+                  factor: 2
+                  maxDuration: 3m
+
+    - name: Display bootstrap information
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          Bootstrap Application Created!
+          ============================================
+          
+          ArgoCD will now sync all applications defined in:
+            workloads/bootstrap/values.yaml
+          
+          Monitor progress in ArgoCD UI or with:
+            kubectl get applications -n {{ argocd_namespace }}
+          
+          To access ArgoCD UI:
+            kubectl port-forward svc/argocd-server -n {{ argocd_namespace }} 8080:443
+          ============================================
+

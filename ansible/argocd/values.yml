@@ -1,0 +1,48 @@
+global:
+  additionalLabels:
+    app.kubernetes.io/part-of: argocd
+
+server:
+  extraArgs:
+    - --insecure  # HTTPS sertifikas Ingress/Haproxy 
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+controller:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+repoServer:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+redis:
+  enabled: true
+  persistence:
+    enabled: false  
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+configs:
+  rbac:
+    policy.default: role:admin  

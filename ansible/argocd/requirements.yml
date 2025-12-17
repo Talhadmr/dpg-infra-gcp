@@ -1,0 +1,6 @@
+---
+# Ansible Galaxy requirements for ArgoCD deployment
+collections:
+  - name: kubernetes.core
+    version: ">=2.4.0"
+
