@@ -43,7 +43,7 @@
             source:
               repoURL: "{{ git_repo_url }}"
               targetRevision: "{{ git_target_revision }}"
-              path: ../../workloads/bootstrap
+              path: workloads/bootstrap
               helm:
                 valueFiles:
                   - values.yaml
