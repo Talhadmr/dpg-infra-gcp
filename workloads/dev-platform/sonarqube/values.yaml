@@ -1,0 +1,56 @@
+# SonarQube Configuration
+
+sonarqube:
+  # Edition: community, developer, enterprise
+  edition: community
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 2Gi
+
+  # Persistence
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+
+  # PostgreSQL database
+  postgresql:
+    enabled: true
+    postgresqlUsername: sonar
+    postgresqlPassword: "changeme"
+    postgresqlDatabase: sonarqube
+    persistence:
+      enabled: true
+      size: 10Gi
+
+  # Ingress
+  ingress:
+    enabled: false
+    # Enable when ingress-nginx is ready
+    # ingressClassName: nginx
+    # hosts:
+    #   - name: sonarqube.example.com
+    #     path: /
+
+  # JVM options
+  jvmOpts: "-Xmx2G -Xms1G"
+
+  # Account (initial admin)
+  account:
+    adminPassword: "changeme"
+
+  # Plugins to install
+  plugins:
+    install: []
+    # Example:
+    # - https://github.com/SonarSource/sonar-java/releases/download/7.0.0.27492/sonar-java-plugin-7.0.0.27492.jar
+
+  # Monitoring
+  monitoring:
+    enabled: false

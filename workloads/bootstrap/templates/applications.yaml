@@ -1,0 +1,55 @@
+{{- /*
+  App of Apps Pattern - ArgoCD Application Definitions
+  This template generates ArgoCD Application resources for each enabled application
+*/ -}}
+
+{{- range .Values.applications }}
+{{- if .enabled }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .name }}
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: {{ .name }}
+    app.kubernetes.io/part-of: bootstrap
+    app.kubernetes.io/managed-by: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "{{ .syncWave | default "0" }}"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ $.Values.project }}
+  
+  source:
+    repoURL: {{ $.Values.spec.source.repoURL }}
+    targetRevision: {{ $.Values.spec.source.targetRevision }}
+    path: {{ .path }}
+    helm:
+      valueFiles:
+        - values.yaml
+  
+  destination:
+    server: {{ $.Values.destination.server }}
+    namespace: {{ .namespace }}
+  
+  syncPolicy:
+    {{- if $.Values.syncPolicy.automated }}
+    automated:
+      prune: {{ $.Values.syncPolicy.automated.prune | default true }}
+      selfHeal: {{ $.Values.syncPolicy.automated.selfHeal | default true }}
+    {{- end }}
+    syncOptions:
+      {{- range $.Values.syncPolicy.syncOptions }}
+      - {{ . }}
+      {{- end }}
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+{{- end }}
+{{- end }}
+

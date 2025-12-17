@@ -1,0 +1,63 @@
+---
+# Cluster Preparation Playbook
+# Creates required namespaces and prepares the cluster for GitOps workflow
+
+- name: Prepare Kubernetes Cluster
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('../../artifacts/kubeconfig', true) }}"
+    namespaces:
+      - name: argocd
+        description: "ArgoCD GitOps controller"
+      - name: monitoring
+        description: "Prometheus, Grafana, and observability stack"
+      - name: data-layer
+        description: "Databases and data services (PostgreSQL, Redis, Kafka)"
+      - name: network-mesh
+        description: "Ingress, service mesh, and networking components"
+      - name: cluster-services
+        description: "Cluster-wide services (secrets, storage)"
+      - name: dev-platform
+        description: "Developer tools and platforms"
+
+  tasks:
+    - name: Display cluster preparation info
+      ansible.builtin.debug:
+        msg: "Preparing cluster with {{ namespaces | length }} namespaces"
+
+    - name: Create Kubernetes namespaces
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ item.name }}"
+            labels:
+              app.kubernetes.io/managed-by: ansible
+            annotations:
+              description: "{{ item.description }}"
+      loop: "{{ namespaces }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Verify namespaces created
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        kind: Namespace
+        name: "{{ item.name }}"
+      loop: "{{ namespaces }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: ns_info
+
+    - name: Display created namespaces
+      ansible.builtin.debug:
+        msg: "Namespace '{{ item.item.name }}' is {{ item.resources[0].status.phase | default('Unknown') }}"
+      loop: "{{ ns_info.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+

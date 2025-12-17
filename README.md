@@ -1,32 +1,44 @@
 # Kubernetes Cluster on GCP
 
-Terraform + Kubespray setup for deploying a Kubernetes cluster on Google Cloud Platform.
+Terraform + Kubespray + ArgoCD setup for deploying a production-ready Kubernetes cluster on Google Cloud Platform with GitOps workflow.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      GCP VPC                            │
-│  ┌─────────┐                                            │
-│  │ Bastion │◄── Public IP + HAProxy (K8s API LB)        │
-│  └────┬────┘    Port 6443 → Masters                     │
-│       │                                                 │
-│       ▼                                                 │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐                  │
-│  │master-01│  │master-02│  │master-03│  Control Plane   │
-│  └─────────┘  └─────────┘  └─────────┘                  │
-│                                                         │
-│  ┌─────────┐  ┌─────────┐                               │
-│  │worker-01│  │worker-02│  Worker Nodes                 │
-│  └─────────┘  └─────────┘                               │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                           GCP VPC                                   │
+│                                                                     │
+│  ┌─────────────┐                                                    │
+│  │   Bastion   │◄── Static Public IP                                │
+│  │  (HAProxy)  │    • Port 6443 → Masters (K8s API)                 │
+│  │             │    • Port 80   → Workers:30080 (HTTP Ingress)      │
+│  │             │    • Port 443  → Workers:30443 (HTTPS Ingress)     │
+│  └──────┬──────┘                                                    │
+│         │                                                           │
+│         ▼                                                           │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │                    Control Plane                            │    │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐                      │    │
+│  │  │master-01│  │master-02│  │master-03│                      │    │
+│  │  └─────────┘  └─────────┘  └─────────┘                      │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │                    Worker Nodes                              │    │
+│  │  ┌─────────┐  ┌─────────┐                                   │    │
+│  │  │worker-01│  │worker-02│  ← NGINX Ingress (NodePort)       │    │
+│  │  └─────────┘  └─────────┘                                   │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Prerequisites
 
-- Terraform
-- Python 3
-- gcloud CLI (authenticated with OS Login configured)
+- Terraform >= 1.0
+- Python 3.8+
+- gcloud CLI (authenticated)
+- Helm 3
+- kubectl
 - jq
 
 ### GCP Setup (one-time per developer)
@@ -36,32 +48,36 @@ Terraform + Kubespray setup for deploying a Kubernetes cluster on Google Cloud P
 make setup-gcp
 ```
 
-This will:
-- Find your SSH public key (id_ed25519, id_rsa, or id_ecdsa)
-- Add it to GCP OS Login
-- Grant the required IAM role
-
 ## Quick Start
+
+### Full Deployment (Infrastructure + K8s + GitOps)
+
+```bash
+# Complete setup in one command
+make full-setup
+```
+
+Or step by step:
 
 ```bash
 # 1. Infrastructure
 make init
 make apply
 
-# 2. Kubernetes
+# 2. Kubernetes Cluster
 make inventory
 make setup-ssh
 make setup-kubespray
 make deploy
 
-# 3. Setup HAProxy Load Balancer
+# 3. Edge Router (HAProxy)
 make renew-certs
 make haproxy
 
-# 4. Access cluster
+# 4. GitOps (ArgoCD)
 make kubeconfig
 export KUBECONFIG=$(pwd)/artifacts/kubeconfig
-kubectl get nodes
+make gitops
 ```
 
 ## Makefile Commands
@@ -82,8 +98,24 @@ kubectl get nodes
 | `make setup-kubespray` | Download Kubespray and create Python venv |
 | `make deploy` | Deploy Kubernetes cluster |
 | `make reset` | Reset/destroy Kubernetes (keeps VMs) |
-| `make haproxy` | Install HAProxy on bastion to expose K8s API |
+| `make kubeconfig` | Fetch kubeconfig from cluster |
+
+### Edge Router (HAProxy)
+
+| Command | Description |
+|---------|-------------|
+| `make haproxy` | Install/update HAProxy on bastion |
 | `make renew-certs` | Regenerate API server certs with bastion IP |
+
+### GitOps (ArgoCD)
+
+| Command | Description |
+|---------|-------------|
+| `make namespaces` | Create Kubernetes namespaces |
+| `make argocd` | Install ArgoCD via Helm |
+| `make bootstrap` | Apply App of Apps manifest |
+| `make gitops` | Full GitOps setup (HAProxy + namespaces + ArgoCD + bootstrap) |
+| `make helm-deps` | Update Helm dependencies for all workloads |
 
 ### Access
 
@@ -91,16 +123,80 @@ kubectl get nodes
 |---------|-------------|
 | `make ssh-bastion` | SSH to bastion host |
 | `make ssh-master` | SSH to master-01 via bastion |
-| `make kubeconfig` | Fetch kubeconfig from cluster |
-
-### Utilities
-
-| Command | Description |
-|---------|-------------|
 | `make setup-gcp` | Configure OS Login (one-time per developer) |
-| `make inventory` | Regenerate Ansible inventory |
 | `make ping` | Test Ansible connectivity |
-| `make clean` | Remove generated files |
+
+## GitOps Workflow
+
+This project implements the **App of Apps** pattern with ArgoCD for GitOps-based deployments.
+
+### Workloads Structure
+
+```
+workloads/
+├── bootstrap/               # Root Application
+├── network-mesh/
+│   ├── ingress-nginx/       # NGINX Ingress (NodePort 30080/30443)
+│   ├── cert-manager/        # Certificate management
+│   └── istio/               # Service mesh (optional)
+├── cluster-services/
+│   ├── external-secrets/    # External secrets operator
+│   └── longhorn/            # Distributed storage
+├── data-layer/
+│   ├── postgres/            # PostgreSQL
+│   ├── redis/               # Redis
+│   └── kafka/               # Kafka
+└── dev-platform/
+    ├── sonarqube/           # Code quality
+    └── keycloak/            # Identity management
+```
+
+### Enabling/Disabling Workloads
+
+Edit `workloads/bootstrap/values.yaml`:
+
+```yaml
+applications:
+  - name: ingress-nginx
+    enabled: true     # Will be deployed
+    
+  - name: kafka
+    enabled: false    # Will NOT be deployed
+```
+
+### Accessing ArgoCD
+
+```bash
+# Port forward
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+# Get admin password
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d
+
+# Open https://localhost:8080
+```
+
+## Traffic Flow
+
+```
+Internet → Bastion (HAProxy)
+                │
+    ┌───────────┼───────────┐
+    │           │           │
+    ▼           ▼           ▼
+  :80         :443        :6443
+    │           │           │
+    ▼           ▼           │
+Workers:30080 Workers:30443 │
+    │           │           │
+    └─────┬─────┘           │
+          ▼                 ▼
+    NGINX Ingress     K8s API Server
+          │
+          ▼
+      Services
+```
 
 ## Configuration
 
@@ -118,33 +214,9 @@ cluster_nodes = {
 }
 ```
 
-## Accessing the Cluster
+## HAProxy Stats
 
-After deploying Kubernetes and HAProxy, the Kubernetes API is exposed through the bastion's public IP:
-
-```bash
-# Fetch and configure kubeconfig (auto-updates API server URL)
-make kubeconfig
-
-# Use kubectl
-export KUBECONFIG=$(pwd)/artifacts/kubeconfig
-kubectl get nodes
-```
-
-The `make kubeconfig` command automatically configures the kubeconfig to use `https://<bastion-ip>:6443` as the API server.
-
-### HAProxy Stats
-
-HAProxy provides a stats page at `http://<bastion-ip>:8404/stats` for monitoring load balancer health.
-
-### Alternative: SSH to Master
-
-You can also SSH directly to a master and run kubectl there:
-
-```bash
-make ssh-master
-sudo kubectl get nodes
-```
+Monitor load balancer health at `http://<bastion-ip>:8404/stats`
 
 ## Directory Structure
 
@@ -152,26 +224,33 @@ sudo kubectl get nodes
 .
 ├── terraform/
 │   ├── modules/
-│   │   ├── vpc/          # VPC, subnets, firewall, NAT
-│   │   └── vm/           # Cluster and standalone VMs
-│   ├── main.tf
-│   ├── variables.tf
+│   │   ├── vpc/              # VPC, subnets, firewall, NAT
+│   │   └── vm/               # Cluster and standalone VMs
 │   └── terraform.tfvars
 ├── ansible/
-│   ├── haproxy/          # HAProxy playbook and templates
-│   ├── inventory/        # Generated inventory
-│   └── kubespray/        # Kubespray (git cloned)
+│   ├── argocd/               # ArgoCD installation playbooks
+│   ├── cluster/              # Namespace management
+│   ├── haproxy/              # HAProxy configuration
+│   ├── inventory/            # Generated inventory
+│   └── kubespray/            # Kubespray (git cloned)
+├── workloads/                # Helm charts (App of Apps)
 ├── tools/
-│   └── generate-hosts.py # Inventory generator
-├── artifacts/            # Generated files (nodes.json, kubeconfig)
+│   └── generate-hosts.py     # Inventory generator
+├── artifacts/                # Generated files
+├── docs/                     # Documentation
 └── Makefile
 ```
 
 ## Notes
 
 - All VMs use OS Login for SSH authentication
-- Bastion is the only VM with a public IP
-- HAProxy on bastion load balances Kubernetes API (port 6443) to masters
-- Cluster nodes are accessed via SSH ProxyJump through bastion
+- Bastion has a static public IP and runs HAProxy as an edge router
+- NGINX Ingress uses NodePort (30080/30443) behind HAProxy
+- ArgoCD manages all workloads via GitOps
 - Kubespray runs in a Python venv (`.venv/`) for version compatibility
-- TODO: IP whitelisting for K8s API access (currently open to 0.0.0.0/0)
+- TODO: IP whitelisting for external access (currently open to 0.0.0.0/0)
+
+## Documentation
+
+- [Development Notes](docs/DEVELOPMENT_NOTES.md) - Detailed architecture and troubleshooting
+- [Workloads README](workloads/README.md) - GitOps and Helm charts documentation

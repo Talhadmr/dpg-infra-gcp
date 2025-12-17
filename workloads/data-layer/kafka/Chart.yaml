@@ -1,0 +1,10 @@
+apiVersion: v2
+name: kafka
+description: Apache Kafka message broker using Bitnami chart
+type: application
+version: 1.0.0
+appVersion: "3.6"
+dependencies:
+  - name: kafka
+    version: "26.6.0"
+    repository: https://charts.bitnami.com/bitnami

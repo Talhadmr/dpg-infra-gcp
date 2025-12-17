@@ -1,0 +1,10 @@
+apiVersion: v2
+name: postgres
+description: PostgreSQL database deployment using Bitnami chart
+type: application
+version: 1.0.0
+appVersion: "16.0"
+dependencies:
+  - name: postgresql
+    version: "13.4.0"
+    repository: https://charts.bitnami.com/bitnami

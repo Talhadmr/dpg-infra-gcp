@@ -1,11 +1,13 @@
 ---
+# HAProxy Installation and Configuration Playbook
+# Configures bastion as edge router for K8s API and Ingress traffic
+
 - name: Install and Configure HAProxy on Bastion
   hosts: bastion
   become: true
   vars:
-    haproxy_frontend_port: 6443
-    haproxy_backend_port: 6443
     haproxy_stats_port: 8404
+    haproxy_api_port: 6443
 
   tasks:
     - name: Install HAProxy
@@ -22,6 +24,7 @@
         group: root
         mode: '0644'
         backup: true
+        validate: haproxy -c -f %s
       notify: Restart HAProxy
 
     - name: Ensure HAProxy is enabled and started
@@ -35,4 +38,3 @@
       ansible.builtin.systemd:
         name: haproxy
         state: restarted
-

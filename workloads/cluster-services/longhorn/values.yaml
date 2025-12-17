@@ -1,0 +1,52 @@
+# Longhorn Distributed Storage Configuration
+
+longhorn:
+  # Default settings
+  defaultSettings:
+    # Backup target (configure for your backup storage)
+    backupTarget: ""
+    
+    # Replica count
+    defaultReplicaCount: 2
+    
+    # Storage reservation
+    storageMinimalAvailablePercentage: 15
+    
+    # Guaranteed instance manager CPU
+    guaranteedInstanceManagerCPU: 12
+
+  # Persistence settings
+  persistence:
+    defaultClass: true
+    defaultClassReplicaCount: 2
+    reclaimPolicy: Delete
+
+  # Ingress for Longhorn UI
+  ingress:
+    enabled: false
+    # Enable when ingress-nginx is ready
+    # ingressClassName: nginx
+    # host: longhorn.example.com
+
+  # Resource limits
+  longhornManager:
+    priorityClass: ~
+    tolerations: []
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+  longhornDriver:
+    priorityClass: ~
+    tolerations: []
+    resources:
+      limits:
+        cpu: 200m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi

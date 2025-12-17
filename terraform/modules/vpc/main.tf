@@ -76,6 +76,36 @@ resource "google_compute_firewall" "allow_k8s_api" {
   }
 }
 
+# Allow HTTP/HTTPS traffic through HAProxy on bastion (Ingress)
+resource "google_compute_firewall" "allow_ingress_http" {
+  name    = "${var.project_name}-allow-ingress-http"
+  network = google_compute_network.vpc.name
+
+  direction     = "INGRESS"
+  source_ranges = ["0.0.0.0/0"] # TODO: Replace with IP whitelist
+  target_tags   = ["bastion"]
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443"]
+  }
+}
+
+# Allow HAProxy stats access (optional, restrict in production)
+resource "google_compute_firewall" "allow_haproxy_stats" {
+  name    = "${var.project_name}-allow-haproxy-stats"
+  network = google_compute_network.vpc.name
+
+  direction     = "INGRESS"
+  source_ranges = ["0.0.0.0/0"] # TODO: Replace with IP whitelist
+  target_tags   = ["bastion"]
+
+  allow {
+    protocol = "tcp"
+    ports    = ["8404"]
+  }
+}
+
 resource "google_compute_router" "router" {
   count = var.enable_nat ? 1 : 0
 

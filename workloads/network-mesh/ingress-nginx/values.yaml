@@ -1,0 +1,78 @@
+# NGINX Ingress Controller Configuration
+# CRITICAL: Configured for NodePort to work with HAProxy edge routing
+
+ingress-nginx:
+  controller:
+    # Replica count for HA
+    replicaCount: 2
+
+    # Pod anti-affinity for spreading across nodes
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: ingress-nginx
+              topologyKey: kubernetes.io/hostname
+
+    # Resource limits
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+    # CRITICAL: NodePort Service Configuration
+    # HAProxy on bastion forwards 80->30080 and 443->30443
+    service:
+      enabled: true
+      type: NodePort
+      
+      # Fixed NodePort assignments (must match HAProxy config)
+      nodePorts:
+        http: 30080
+        https: 30443
+      
+      # External traffic policy
+      externalTrafficPolicy: Local
+      
+      # Annotations
+      annotations:
+        service.kubernetes.io/description: "NGINX Ingress Controller NodePort Service"
+
+    # Ingress class configuration
+    ingressClassResource:
+      name: nginx
+      enabled: true
+      default: true
+      controllerValue: "k8s.io/ingress-nginx"
+
+    # Admission webhooks
+    admissionWebhooks:
+      enabled: true
+      failurePolicy: Fail
+
+    # Metrics for monitoring
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: false  # Enable when Prometheus is deployed
+
+    # Config map customization
+    config:
+      # Enable real IP from HAProxy
+      use-forwarded-headers: "true"
+      compute-full-forwarded-for: "true"
+      use-proxy-protocol: "false"
+      
+      # Logging
+      log-format-upstream: '$remote_addr - $request_id - [$proxy_add_x_forwarded_for] - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status'
+
+  # Default backend (optional)
+  defaultBackend:
+    enabled: false
+

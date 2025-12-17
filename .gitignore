@@ -1,9 +1,39 @@
+# IDE
 .vscode
 .idea
 .DS_Store
+
+# Credentials
 .creds
 
 # Generated files (not tracked)
 artifacts/
 kubeconfig/
 .venv/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfvars.local
+
+# Helm
+**/charts/
+*.tgz
+
+# Ansible
+*.retry
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Kubespray (cloned repo)
+ansible/kubespray/

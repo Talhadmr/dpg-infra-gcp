@@ -25,7 +25,10 @@ defaults
     timeout client  50000
     timeout server  50000
 
-# HAProxy Stats (optional, accessible at http://bastion:8404/stats)
+# =============================================================================
+# HAProxy Stats Dashboard
+# Accessible at http://<bastion-ip>:{{ haproxy_stats_port }}/stats
+# =============================================================================
 listen stats
     bind *:{{ haproxy_stats_port }}
     mode http
@@ -34,19 +37,56 @@ listen stats
     stats refresh 10s
     stats admin if LOCALHOST
 
-# Kubernetes API Server Frontend
+# =============================================================================
+# Kubernetes API Server (port 6443)
+# Load balances to kube_control_plane nodes
+# =============================================================================
 frontend kubernetes_api
-    bind *:{{ haproxy_frontend_port }}
+    bind *:{{ haproxy_api_port | default(6443) }}
     mode tcp
     option tcplog
     default_backend kubernetes_masters
 
-# Kubernetes Masters Backend
 backend kubernetes_masters
     mode tcp
     option tcp-check
     balance roundrobin
 {% for host in groups['kube_control_plane'] %}
-    server {{ host }} {{ hostvars[host]['ansible_host'] }}:{{ haproxy_backend_port }} check fall 3 rise 2
+    server {{ host }} {{ hostvars[host]['ansible_host'] }}:6443 check fall 3 rise 2
 {% endfor %}
 
+# =============================================================================
+# HTTP Ingress (port 80 -> NodePort 30080)
+# Load balances to kube_node workers for Ingress Controller
+# =============================================================================
+frontend http_ingress
+    bind *:80
+    mode tcp
+    option tcplog
+    default_backend ingress_http
+
+backend ingress_http
+    mode tcp
+    option tcp-check
+    balance roundrobin
+{% for host in groups['kube_node'] %}
+    server {{ host }} {{ hostvars[host]['ansible_host'] }}:30080 check fall 3 rise 2
+{% endfor %}
+
+# =============================================================================
+# HTTPS Ingress (port 443 -> NodePort 30443)
+# Load balances to kube_node workers for Ingress Controller (TLS passthrough)
+# =============================================================================
+frontend https_ingress
+    bind *:443
+    mode tcp
+    option tcplog
+    default_backend ingress_https
+
+backend ingress_https
+    mode tcp
+    option tcp-check
+    balance roundrobin
+{% for host in groups['kube_node'] %}
+    server {{ host }} {{ hostvars[host]['ansible_host'] }}:30443 check fall 3 rise 2
+{% endfor %}

@@ -1,0 +1,6 @@
+---
+# Ansible Galaxy requirements for cluster management
+collections:
+  - name: kubernetes.core
+    version: ">=2.4.0"
+

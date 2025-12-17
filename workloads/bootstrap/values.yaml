@@ -1,0 +1,92 @@
+# Bootstrap App of Apps Configuration
+# This file defines which applications to deploy and their configuration
+
+# Git repository containing the workloads
+spec:
+  source:
+    repoURL: https://github.com/YOUR_ORG/dpg-infra-gcp.git
+    targetRevision: HEAD
+    path: workloads
+
+# ArgoCD project settings
+project: default
+
+# Destination cluster (in-cluster)
+destination:
+  server: https://kubernetes.default.svc
+
+# Sync policy defaults
+syncPolicy:
+  automated:
+    prune: true
+    selfHeal: true
+  syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+
+# Applications to deploy
+applications:
+  # Network Mesh Layer
+  - name: ingress-nginx
+    namespace: network-mesh
+    path: workloads/network-mesh/ingress-nginx
+    enabled: true
+    syncWave: "1"
+
+  - name: cert-manager
+    namespace: network-mesh
+    path: workloads/network-mesh/cert-manager
+    enabled: true
+    syncWave: "1"
+
+  - name: istio
+    namespace: network-mesh
+    path: workloads/network-mesh/istio
+    enabled: false  # Disabled by default
+    syncWave: "2"
+
+  # Cluster Services
+  - name: external-secrets
+    namespace: cluster-services
+    path: workloads/cluster-services/external-secrets
+    enabled: true
+    syncWave: "2"
+
+  - name: longhorn
+    namespace: cluster-services
+    path: workloads/cluster-services/longhorn
+    enabled: false  # Disabled by default
+    syncWave: "2"
+
+  # Data Layer
+  - name: postgres
+    namespace: data-layer
+    path: workloads/data-layer/postgres
+    enabled: true
+    syncWave: "3"
+
+  - name: redis
+    namespace: data-layer
+    path: workloads/data-layer/redis
+    enabled: true
+    syncWave: "3"
+
+  - name: kafka
+    namespace: data-layer
+    path: workloads/data-layer/kafka
+    enabled: false  # Disabled by default
+    syncWave: "3"
+
+  # Dev Platform
+  - name: sonarqube
+    namespace: dev-platform
+    path: workloads/dev-platform/sonarqube
+    enabled: false  # Disabled by default
+    syncWave: "4"
+
+  - name: keycloak
+    namespace: dev-platform
+    path: workloads/dev-platform/keycloak
+    enabled: false  # Disabled by default
+    syncWave: "4"
+

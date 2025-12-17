@@ -1,9 +1,14 @@
-.PHONY: help init plan apply destroy inventory setup-ssh ssh-bastion ssh-master ping deploy reset clean setup-kubespray kubeconfig setup-gcp haproxy renew-certs
+.PHONY: help init plan apply destroy inventory setup-ssh ssh-bastion ssh-master ping deploy reset clean setup-kubespray kubeconfig setup-gcp haproxy renew-certs namespaces argocd bootstrap gitops helm-deps
 
 ZONE ?= europe-west3-a
 KUBESPRAY_VERSION ?= v2.25.0
 VENV ?= .venv
 ANSIBLE_USER ?= $(shell gcloud compute os-login describe-profile --format="value(posixAccounts[0].username)" 2>/dev/null || echo "debian")
+
+# GitOps Configuration
+GIT_REPO_URL ?= https://github.com/Talhadmr/dpg-infra-gcp.git
+GIT_TARGET_REVISION ?= HEAD
+
 
 init:
 	terraform -chdir=./terraform init
@@ -19,17 +24,13 @@ destroy:
 
 
 inventory:
-	
 	terraform -chdir=./terraform refresh
-
 	terraform -chdir=./terraform output -json all_nodes > artifacts/nodes.json
-
 	python3 tools/generate-hosts.py \
 		--input artifacts/nodes.json \
 		--output ansible/inventory/inventory.ini \
 		--ansible-user $(ANSIBLE_USER) \
 		--become
-
 
 setup-ssh:
 	@BASTION_IP=$$(terraform -chdir=./terraform output -raw bastion_public_ip 2>/dev/null); \
@@ -77,13 +78,13 @@ setup-gcp:
 	echo ""; \
 	echo "Done! Your OS Login username: $$(gcloud compute os-login describe-profile --format='value(posixAccounts[0].username)')"
 
-
 ping:
 	@if [ -d "$(VENV)" ]; then \
 		cd ansible && ../$(VENV)/bin/ansible -i inventory/inventory.ini all -m ping; \
 	else \
 		cd ansible && ansible -i inventory/inventory.ini all -m ping; \
 	fi
+
 
 setup-kubespray:
 	@if [ ! -d "ansible/kubespray" ]; then \
@@ -93,6 +94,8 @@ setup-kubespray:
 	python3 -m venv $(VENV)
 	$(VENV)/bin/pip install --upgrade pip
 	$(VENV)/bin/pip install -r ansible/kubespray/requirements.txt
+	$(VENV)/bin/pip install kubernetes  # Required for kubernetes.core module
+	$(VENV)/bin/ansible-galaxy collection install kubernetes.core
 
 deploy: inventory
 	cd ansible/kubespray && ../../$(VENV)/bin/ansible-playbook -i ../inventory/inventory.ini \
@@ -107,8 +110,6 @@ reset:
 		--become --become-user=root \
 		-v
 
-all: init apply inventory setup-ssh
-
 kubeconfig:
 	@BASTION_IP=$$(terraform -chdir=./terraform output -raw bastion_public_ip 2>/dev/null); \
 	MASTER_IP=$$(terraform -chdir=./terraform output -json master_nodes 2>/dev/null | jq -r '."master-01".ip'); \
@@ -116,7 +117,10 @@ kubeconfig:
 		"sudo cat /etc/kubernetes/admin.conf" > artifacts/kubeconfig; \
 	BASTION_IP=$$(terraform -chdir=./terraform output -raw bastion_public_ip 2>/dev/null); \
 	sed -i '' "s|server: https://[0-9.]*:6443|server: https://$$BASTION_IP:6443|" artifacts/kubeconfig; \
-	echo "Kubeconfig saved: artifacts/kubeconfig (API: https://$$BASTION_IP:6443)"
+	echo "Kubeconfig saved: artifacts/kubeconfig (API: https://$$BASTION_IP:6443)"; \
+	echo ""; \
+	echo "To use: export KUBECONFIG=$$(pwd)/artifacts/kubeconfig"
+
 
 haproxy:
 	@if [ -d "$(VENV)" ]; then \
@@ -148,8 +152,117 @@ renew-certs: inventory
 	echo "==> Done! Waiting for API server to restart..."; \
 	sleep 10
 
+namespaces:
+	@echo "==> Creating Kubernetes namespaces..."
+	@if [ -d "$(VENV)" ]; then \
+		KUBECONFIG=$$(pwd)/artifacts/kubeconfig $(VENV)/bin/ansible-playbook \
+			ansible/cluster/playbook.yml -v; \
+	else \
+		KUBECONFIG=$$(pwd)/artifacts/kubeconfig ansible-playbook \
+			ansible/cluster/playbook.yml -v; \
+	fi
+
+argocd:
+	@echo "==> Installing ArgoCD via Helm..."
+	@if [ -d "$(VENV)" ]; then \
+		KUBECONFIG=$$(pwd)/artifacts/kubeconfig $(VENV)/bin/ansible-playbook \
+			ansible/argocd/install.yml -v; \
+	else \
+		KUBECONFIG=$$(pwd)/artifacts/kubeconfig ansible-playbook \
+			ansible/argocd/install.yml -v; \
+	fi
+
+bootstrap:
+	@echo "==> Applying Bootstrap Application to ArgoCD..."
+	@if [ -d "$(VENV)" ]; then \
+		KUBECONFIG=$$(pwd)/artifacts/kubeconfig \
+		GIT_REPO_URL=$(GIT_REPO_URL) \
+		GIT_TARGET_REVISION=$(GIT_TARGET_REVISION) \
+		$(VENV)/bin/ansible-playbook ansible/argocd/bootstrap.yml -v; \
+	else \
+		KUBECONFIG=$$(pwd)/artifacts/kubeconfig \
+		GIT_REPO_URL=$(GIT_REPO_URL) \
+		GIT_TARGET_REVISION=$(GIT_TARGET_REVISION) \
+		ansible-playbook ansible/argocd/bootstrap.yml -v; \
+	fi
+
+helm-deps:
+	@echo "==> Updating Helm dependencies for workloads..."
+	@for chart in workloads/network-mesh/*/Chart.yaml \
+	              workloads/cluster-services/*/Chart.yaml \
+	              workloads/data-layer/*/Chart.yaml \
+	              workloads/dev-platform/*/Chart.yaml; do \
+		dir=$$(dirname $$chart); \
+		echo "Updating dependencies for $$dir"; \
+		helm dependency update $$dir || true; \
+	done
+
+
+gitops: haproxy namespaces argocd bootstrap
+	@echo ""
+	@echo "============================================"
+	@echo "GitOps Setup Complete!"
+	@echo "============================================"
+	@echo ""
+	@echo "ArgoCD UI access:"
+	@echo "  kubectl port-forward svc/argocd-server -n argocd 8080:443"
+	@echo "  Then open: https://localhost:8080"
+	@echo ""
+	@echo "Get admin password:"
+	@echo "  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+	@echo ""
+	@echo "Monitor applications:"
+	@echo "  kubectl get applications -n argocd"
+	@echo ""
+
+all: init apply inventory setup-ssh
+
+# Full cluster setup: Infrastructure + K8s + GitOps
+full-setup: apply inventory setup-ssh deploy kubeconfig renew-certs gitops
+
 clean:
 	rm -f artifacts/nodes.json
 	rm -f artifacts/kubeconfig
 	rm -f ansible/inventory/inventory.ini
 	rm -rf ansible/inventory/group_vars/
+
+
+help:
+	@echo "DPG Infrastructure - Available Commands"
+	@echo "========================================"
+	@echo ""
+	@echo "Infrastructure:"
+	@echo "  make init          - Initialize Terraform"
+	@echo "  make plan          - Show Terraform plan"
+	@echo "  make apply         - Apply Terraform configuration"
+	@echo "  make destroy       - Destroy all resources"
+	@echo ""
+	@echo "Inventory & SSH:"
+	@echo "  make inventory     - Generate Ansible inventory"
+	@echo "  make setup-gcp     - Configure OS Login SSH key"
+	@echo "  make setup-ssh     - Test SSH to bastion"
+	@echo "  make ssh-bastion   - SSH into bastion host"
+	@echo "  make ssh-master    - SSH into master-01"
+	@echo "  make ping          - Ansible ping all nodes"
+	@echo ""
+	@echo "Kubernetes:"
+	@echo "  make setup-kubespray - Clone Kubespray + setup venv"
+	@echo "  make deploy        - Deploy K8s cluster"
+	@echo "  make reset         - Reset K8s cluster"
+	@echo "  make kubeconfig    - Fetch kubeconfig"
+	@echo ""
+	@echo "Edge Router (HAProxy):"
+	@echo "  make haproxy       - Install/update HAProxy"
+	@echo "  make renew-certs   - Regenerate API server certs"
+	@echo ""
+	@echo "GitOps (ArgoCD):"
+	@echo "  make namespaces    - Create K8s namespaces"
+	@echo "  make argocd        - Install ArgoCD"
+	@echo "  make bootstrap     - Apply App of Apps"
+	@echo "  make gitops        - Full GitOps setup"
+	@echo "  make helm-deps     - Update Helm dependencies"
+	@echo ""
+	@echo "Combined:"
+	@echo "  make all           - Infrastructure + inventory + SSH"
+	@echo "  make full-setup    - Complete cluster + GitOps setup"
+	@echo "  make clean         - Remove generated files"

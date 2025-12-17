@@ -1,0 +1,8 @@
+apiVersion: v2
+name: istio
+description: Istio Service Mesh (optional - for advanced networking)
+type: application
+version: 1.0.0
+appVersion: "1.20.0"
+# Note: Istio requires separate installation steps
+# This is a placeholder for future implementation

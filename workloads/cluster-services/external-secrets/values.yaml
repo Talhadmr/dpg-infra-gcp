@@ -1,0 +1,47 @@
+# External Secrets Operator Configuration
+
+external-secrets:
+  # Install CRDs
+  installCRDs: true
+
+  # Replica count
+  replicaCount: 1
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+  # Webhook configuration
+  webhook:
+    replicaCount: 1
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 25m
+        memory: 64Mi
+
+  # Cert controller
+  certController:
+    replicaCount: 1
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 25m
+        memory: 64Mi
+
+  # Service account (needed for GCP Secret Manager)
+  serviceAccount:
+    create: true
+    annotations: {}
+    # For GCP Workload Identity:
+    # annotations:
+    #   iam.gke.io/gcp-service-account: external-secrets@PROJECT_ID.iam.gserviceaccount.com
