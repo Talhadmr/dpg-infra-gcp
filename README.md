@@ -241,6 +241,25 @@ Monitor load balancer health at `http://<bastion-ip>:8404/stats`
 └── Makefile
 ```
 
+## Cost Optimization
+
+To reduce GCP costs, you can schedule automatic shutdown of cluster VMs:
+
+```bash
+# Run the scheduler script (one-time setup)
+./tools/scheduler-cron.sh
+```
+
+This creates a GCP resource policy that:
+- **Stops all VMs** (bastion, masters, workers) at **22:00 Istanbul time** daily
+- Uses GCP's native instance scheduling (no external cron needed)
+
+To start the cluster again:
+```bash
+# Start all instances manually
+gcloud compute instances start bastion master-01 master-02 master-03 worker-01 worker-02 --zone=europe-west3-a
+```
+
 ## Notes
 
 - All VMs use OS Login for SSH authentication
@@ -254,3 +273,8 @@ Monitor load balancer health at `http://<bastion-ip>:8404/stats`
 
 - [Development Notes](docs/DEVELOPMENT_NOTES.md) - Detailed architecture and troubleshooting
 - [Workloads README](workloads/README.md) - GitOps and Helm charts documentation
+
+
+## deleting a namespace with zombie process 
+kubectl get namespace {namespacce name} -o json | tr -d "\n" | sed "s/\"kubernetes\"//g" | kubectl replace --raw /api/v1/namespaces/{namespacce name}/finalize -f -
+
