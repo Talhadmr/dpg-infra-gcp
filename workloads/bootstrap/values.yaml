@@ -30,7 +30,7 @@ applications:
   - name: ingress-nginx
     namespace: network-mesh
     path: workloads/network-mesh/ingress-nginx
-    enabled: false
+    enabled: true
     syncWave: "1"
 
   - name: cert-manager
