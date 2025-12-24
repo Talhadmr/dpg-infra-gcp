@@ -49,13 +49,13 @@ applications:
   - name: external-secrets
     namespace: cluster-services
     path: workloads/cluster-services/external-secrets
-    enabled: false
-    syncWave: "2"
+    enabled: true
+    syncWave: "2" 
 
   - name: longhorn
     namespace: cluster-services
     path: workloads/cluster-services/longhorn
-    enabled: false  
+    enabled: true  
     syncWave: "2"
 
   # Data Layer
