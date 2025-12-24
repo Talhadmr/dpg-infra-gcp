@@ -30,63 +30,63 @@ applications:
   - name: ingress-nginx
     namespace: network-mesh
     path: workloads/network-mesh/ingress-nginx
-    enabled: true
+    enabled: false
     syncWave: "1"
 
   - name: cert-manager
     namespace: network-mesh
     path: workloads/network-mesh/cert-manager
-    enabled: true
+    enabled: false
     syncWave: "1"
 
   - name: istio
     namespace: network-mesh
     path: workloads/network-mesh/istio
-    enabled: false  # Disabled by default
+    enabled: false 
     syncWave: "2"
 
   # Cluster Services
   - name: external-secrets
     namespace: cluster-services
     path: workloads/cluster-services/external-secrets
-    enabled: true
+    enabled: false
     syncWave: "2"
 
   - name: longhorn
     namespace: cluster-services
     path: workloads/cluster-services/longhorn
-    enabled: false  # Disabled by default
+    enabled: false  
     syncWave: "2"
 
   # Data Layer
   - name: postgres
     namespace: data-layer
     path: workloads/data-layer/postgres
-    enabled: true
+    enabled: false
     syncWave: "3"
 
   - name: redis
     namespace: data-layer
     path: workloads/data-layer/redis
-    enabled: true
+    enabled: false
     syncWave: "3"
 
   - name: kafka
     namespace: data-layer
     path: workloads/data-layer/kafka
-    enabled: false  # Disabled by default
+    enabled: false  
     syncWave: "3"
 
   # Dev Platform
   - name: sonarqube
     namespace: dev-platform
     path: workloads/dev-platform/sonarqube
-    enabled: false  # Disabled by default
+    enabled: false  
     syncWave: "4"
 
   - name: keycloak
     namespace: dev-platform
     path: workloads/dev-platform/keycloak
-    enabled: false  # Disabled by default
+    enabled: false  
     syncWave: "4"
 

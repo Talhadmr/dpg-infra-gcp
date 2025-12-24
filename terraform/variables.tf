@@ -36,22 +36,26 @@ variable "vpc_config" {
 variable "cluster_nodes" {
   description = "Configuration for Kubernetes cluster nodes"
   type = object({
-    enabled      = bool
-    master_count = number
-    worker_count = number
-    machine_type = string
-    disk_size_gb = number
-    disk_type    = string
-    image        = string
+    enabled             = bool
+    master_count        = number
+    worker_count        = number
+    master_machine_type = string
+    worker_machine_type = string
+    master_disk_size_gb = number
+    worker_disk_size_gb = number
+    disk_type           = string
+    image               = string
   })
   default = {
-    enabled      = true
-    master_count = 3
-    worker_count = 3
-    machine_type = "e2-standard-2"
-    disk_size_gb = 20
-    disk_type    = "pd-standard"
-    image        = "projects/debian-cloud/global/images/family/debian-12"
+    enabled             = true
+    master_count        = 3
+    worker_count        = 2
+    master_machine_type = "e2-standard-2"
+    worker_machine_type = "e2-standard-4"
+    master_disk_size_gb = 30
+    worker_disk_size_gb = 50
+    disk_type           = "pd-balanced"
+    image               = "projects/debian-cloud/global/images/family/debian-12"
   }
 }
 

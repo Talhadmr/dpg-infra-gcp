@@ -4,8 +4,8 @@ locals {
     for i in range(var.cluster_nodes.master_count) :
     format("master-%02d", i + 1) => {
       role         = "control"
-      machine_type = var.cluster_nodes.machine_type
-      disk_size_gb = var.cluster_nodes.disk_size_gb
+      machine_type = var.cluster_nodes.master_machine_type
+      disk_size_gb = var.cluster_nodes.master_disk_size_gb
       disk_type    = var.cluster_nodes.disk_type
       image        = var.cluster_nodes.image
     }
@@ -16,8 +16,8 @@ locals {
     for i in range(var.cluster_nodes.worker_count) :
     format("worker-%02d", i + 1) => {
       role         = "worker"
-      machine_type = var.cluster_nodes.machine_type
-      disk_size_gb = var.cluster_nodes.disk_size_gb
+      machine_type = var.cluster_nodes.worker_machine_type
+      disk_size_gb = var.cluster_nodes.worker_disk_size_gb
       disk_type    = var.cluster_nodes.disk_type
       image        = var.cluster_nodes.image
     }

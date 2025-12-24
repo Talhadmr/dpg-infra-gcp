@@ -272,7 +272,9 @@ gcloud compute instances start bastion master-01 master-02 master-03 worker-01 w
 ## Documentation
 
 - [Development Notes](docs/DEVELOPMENT_NOTES.md) - Detailed architecture and troubleshooting
-- [Workloads README](workloads/README.md) - GitOps and Helm charts documentation
+- [GitOps Guide](docs/GITOPS.md) - ArgoCD, App of Apps pattern, and Helm charts
+- [HAProxy Guide](docs/HAPROXY.md) - Edge router configuration and load balancing
+- [Workloads README](workloads/README.md) - Helm charts quick reference
 
 
 ## deleting a namespace with zombie process 
