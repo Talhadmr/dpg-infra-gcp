@@ -187,18 +187,10 @@ bootstrap:
 	fi
 
 helm-deps:
-	@echo "==> Updating Helm dependencies for workloads..."
-	@for chart in workloads/network-mesh/*/Chart.yaml \
-	              workloads/cluster-services/*/Chart.yaml \
-	              workloads/data-layer/*/Chart.yaml \
-	              workloads/dev-platform/*/Chart.yaml; do \
-		dir=$$(dirname $$chart); \
-		echo "Updating dependencies for $$dir"; \
-		helm dependency update $$dir || true; \
-	done
+	find workloads -name Chart.yaml -execdir helm dependency build \; 
 
 
-gitops: haproxy namespaces argocd bootstrap
+gitops: haproxy namespaces argocd helm-deps bootstrap
 	@echo ""
 	@echo "============================================"
 	@echo "GitOps Setup Complete!"
