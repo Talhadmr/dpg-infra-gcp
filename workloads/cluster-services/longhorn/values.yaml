@@ -1,6 +1,9 @@
 longhorn:
   enabled: true
 
+  preUpgradeChecker:
+    jobEnabled: false
+
   defaultSettings:
     backupTarget: ""
     defaultReplicaCount: 2
