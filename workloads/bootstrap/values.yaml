@@ -55,7 +55,7 @@ applications:
   - name: longhorn
     namespace: cluster-services
     path: workloads/cluster-services/longhorn
-    enabled: true  
+    enabled: false  
     syncWave: "2"
 
   # Data Layer
