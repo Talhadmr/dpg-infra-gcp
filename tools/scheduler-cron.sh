@@ -25,8 +25,6 @@ STOP_CRON="0 22 * * *"
 TARGET_INSTANCES=(
     "bastion"
     "master-01"
-    "master-02"
-    "master-03"
     "worker-01"
     "worker-02"
 )

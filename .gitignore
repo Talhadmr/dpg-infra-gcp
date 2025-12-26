@@ -12,6 +12,7 @@ kubeconfig/
 .venv/
 
 # Terraform
+terraform.tfstate
 *.tfstate
 *.tfstate.*
 .terraform/
