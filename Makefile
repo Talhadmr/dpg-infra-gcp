@@ -25,6 +25,7 @@ destroy:
 
 inventory:
 	terraform -chdir=./terraform refresh
+	mkdir -p artifacts
 	terraform -chdir=./terraform output -json all_nodes > artifacts/nodes.json
 	python3 tools/generate-hosts.py \
 		--input artifacts/nodes.json \
