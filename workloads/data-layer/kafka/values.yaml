@@ -1,0 +1,56 @@
+# Apache Kafka Configuration
+
+kafka:
+  # Replica count
+  replicaCount: 3
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 1Gi
+
+  # Persistence
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+
+  # Kraft mode (no Zookeeper)
+  kraft:
+    enabled: true
+
+  # Zookeeper (disabled when using Kraft)
+  zookeeper:
+    enabled: false
+
+  # Listeners
+  listeners:
+    client:
+      protocol: PLAINTEXT
+    interbroker:
+      protocol: PLAINTEXT
+
+  # SASL authentication (enable for production)
+  sasl:
+    client:
+      users:
+        - user
+      passwords: "changeme"
+
+  # Metrics
+  metrics:
+    kafka:
+      enabled: true
+    jmx:
+      enabled: true
+    serviceMonitor:
+      enabled: false  # Enable when Prometheus is deployed
+
+  # Auto-create topics
+  provisioning:
+    enabled: false
+    topics: []

@@ -1,0 +1,52 @@
+# PostgreSQL Configuration
+
+postgresql:
+  # Architecture: standalone or replication
+  architecture: standalone
+
+  # Auth configuration
+  auth:
+    # Use existing secret for passwords (recommended for production)
+    # existingSecret: postgres-credentials
+    
+    # Or define directly (for development only)
+    postgresPassword: "changeme"
+    username: "app"
+    password: "changeme"
+    database: "appdb"
+
+  # Primary configuration
+  primary:
+    # Resource limits
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+    # Persistence
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""  # Use default storage class
+
+    # Node selector
+    nodeSelector: {}
+
+    # Tolerations
+    tolerations: []
+
+    # Affinity
+    affinity: {}
+
+  # Metrics for monitoring
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false  # Enable when Prometheus is deployed
+
+  # Volume permissions init container
+  volumePermissions:
+    enabled: false

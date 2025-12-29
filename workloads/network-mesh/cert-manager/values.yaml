@@ -1,0 +1,45 @@
+# cert-manager Configuration
+
+cert-manager:
+  # Install CRDs
+  installCRDs: true
+
+  # Replica count
+  replicaCount: 1
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+  # Webhook configuration
+  webhook:
+    replicaCount: 1
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 25m
+        memory: 64Mi
+
+  # CA Injector
+  cainjector:
+    replicaCount: 1
+    resources:
+      limits:
+        cpu: 200m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+
+  # Prometheus metrics
+  prometheus:
+    enabled: true
+    servicemonitor:
+      enabled: false  # Enable when Prometheus is deployed

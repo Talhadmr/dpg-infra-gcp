@@ -1,0 +1,31 @@
+longhorn:
+  enabled: true
+
+  preUpgradeChecker:
+    jobEnabled: false
+
+  defaultSettings:
+    backupTarget: ""
+    defaultReplicaCount: 2
+    storageMinimalAvailablePercentage: 15
+    guaranteedInstanceManagerCPU: 12
+
+  persistence:
+    defaultClass: true
+    defaultClassReplicaCount: 2
+    reclaimPolicy: Delete
+
+  ingress:
+    enabled: false
+
+  longhornManager:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+  longhornUI:
+    replicas: 1

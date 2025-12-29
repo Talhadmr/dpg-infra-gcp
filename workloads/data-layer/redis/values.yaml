@@ -1,0 +1,48 @@
+# Redis Configuration
+
+redis:
+  # Architecture: standalone or replication
+  architecture: standalone
+
+  # Auth configuration
+  auth:
+    enabled: true
+    # Use existing secret (recommended for production)
+    # existingSecret: redis-credentials
+    
+    # Or define directly (for development only)
+    password: "changeme"
+
+  # Master configuration
+  master:
+    # Resource limits
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+
+    # Persistence
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClass: ""
+
+  # Replica configuration (if using replication)
+  replica:
+    replicaCount: 0  # Set to 2+ for replication mode
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+
+  # Metrics for monitoring
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false  # Enable when Prometheus is deployed

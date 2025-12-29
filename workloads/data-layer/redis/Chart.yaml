@@ -1,0 +1,10 @@
+apiVersion: v2
+name: redis
+description: Redis in-memory data store using Bitnami chart
+type: application
+version: 1.0.0
+appVersion: "7.2"
+dependencies:
+  - name: redis
+    version: "18.6.0"
+    repository: https://charts.bitnami.com/bitnami

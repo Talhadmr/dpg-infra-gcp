@@ -1,0 +1,67 @@
+# Keycloak IAM Configuration
+
+keycloak:
+  # Production mode
+  production: false
+
+  # Proxy configuration (for running behind HAProxy/Ingress)
+  proxy: edge
+
+  # Auth configuration
+  auth:
+    adminUser: admin
+    adminPassword: "changeme"
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  # Replica count
+  replicaCount: 1
+
+  # PostgreSQL database
+  postgresql:
+    enabled: true
+    auth:
+      username: keycloak
+      password: "changeme"
+      database: keycloak
+    primary:
+      persistence:
+        enabled: true
+        size: 5Gi
+
+  # Ingress
+  ingress:
+    enabled: false
+    # Enable when ingress-nginx is ready
+    # ingressClassName: nginx
+    # hostname: keycloak.example.com
+
+  # Service
+  service:
+    type: ClusterIP
+    ports:
+      http: 80
+      https: 443
+
+  # Extra environment variables
+  extraEnvVars:
+    - name: KEYCLOAK_EXTRA_ARGS
+      value: "--features=token-exchange,admin-fine-grained-authz"
+
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false  # Enable when Prometheus is deployed
+
+  # Logging
+  logging:
+    output: default
+    level: INFO

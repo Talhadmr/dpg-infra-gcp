@@ -1,0 +1,17 @@
+# Istio Service Mesh Configuration
+# Note: This is a placeholder. Istio installation requires istioctl or Helm.
+# Uncomment and configure when ready to deploy.
+
+# istio:
+#   profile: default
+#   meshConfig:
+#     accessLogFile: /dev/stdout
+#   components:
+#     pilot:
+#       k8s:
+#         resources:
+#           requests:
+#             cpu: 100m
+#             memory: 128Mi
+
+enabled: false
