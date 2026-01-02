@@ -46,3 +46,8 @@ output "bastion_public_ip" {
   value       = module.vm.bastion_public_ip
 }
 
+output "k8s_cluster_service_account_email" {
+  description = "Email of the service account attached to Kubernetes cluster VMs for keyless authentication"
+  value       = module.vm.k8s_cluster_service_account_email
+}
+

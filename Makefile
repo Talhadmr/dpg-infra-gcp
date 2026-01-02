@@ -1,4 +1,4 @@
-.PHONY: help init plan apply destroy inventory setup-ssh ssh-bastion ssh-master ping deploy reset clean setup-kubespray kubeconfig setup-gcp haproxy renew-certs namespaces argocd bootstrap gitops helm-deps
+.PHONY: help init plan apply destroy inventory setup-ssh ssh-bastion ssh-master ping deploy reset clean setup-kubespray kubeconfig setup-gcp haproxy renew-certs namespaces argocd bootstrap gitops helm-deps install-external-secrets setup-external-secrets-gcp
 
 ZONE ?= europe-west3-a
 KUBESPRAY_VERSION ?= v2.25.0
@@ -188,7 +188,89 @@ bootstrap:
 	fi
 
 helm-deps:
-	find workloads -name Chart.yaml -execdir helm dependency build \; 
+	find workloads -name Chart.yaml -execdir helm dependency build \;
+
+install-external-secrets:
+	@echo "==> Installing External Secrets Operator..."
+	@echo ""
+	@if [ -z "$$KUBECONFIG" ]; then \
+		echo "ERROR: KUBECONFIG not set. Run 'make kubeconfig' first."; \
+		exit 1; \
+	fi
+	@echo "Step 1: Creating cluster-services namespace..."
+	@kubectl create namespace cluster-services --dry-run=client -o yaml | kubectl apply -f -
+	@echo ""
+	@echo "Step 2: Adding External Secrets Helm repository..."
+	@helm repo add external-secrets https://charts.external-secrets.io 2>/dev/null || true
+	@helm repo update external-secrets
+	@echo ""
+	@echo "Step 3: Building Helm dependencies..."
+	@cd workloads/cluster-services/external-secrets && helm dependency build
+	@echo ""
+	@echo "Step 4: Installing External Secrets Operator (without GCP ClusterSecretStore)..."
+	@cd workloads/cluster-services/external-secrets && \
+		helm upgrade --install external-secrets . \
+		-n cluster-services \
+		--create-namespace \
+		-f values.yaml \
+		--set gcp.enabled=false \
+		--wait \
+		--timeout=5m
+	@echo ""
+	@echo "Step 5: Waiting for External Secrets Operator to be ready..."
+	@kubectl wait --for=condition=ready pod \
+		-l app.kubernetes.io/name=external-secrets \
+		-n cluster-services \
+		--timeout=120s
+	@echo ""
+	@echo "============================================"
+	@echo "External Secrets Operator installed!"
+	@echo "============================================"
+	@echo ""
+	@echo "Next step: Run 'make setup-external-secrets-gcp' to configure GCP connection"
+
+setup-external-secrets-gcp:
+	@echo "==> Setting up GCP connection for External Secrets Operator..."
+	@echo ""
+	@if [ -z "$$KUBECONFIG" ]; then \
+		echo "ERROR: KUBECONFIG not set. Run 'make kubeconfig' first."; \
+		exit 1; \
+	fi
+	@echo "Step 1: Verifying External Secrets Operator is installed..."
+	@kubectl get pods -n cluster-services -l app.kubernetes.io/name=external-secrets >/dev/null 2>&1 || \
+		(echo "ERROR: External Secrets Operator not found. Run 'make install-external-secrets' first." && exit 1)
+	@echo ""
+	@echo "Step 2: Verifying service account exists..."
+	@SERVICE_ACCOUNT_EMAIL=$$(terraform -chdir=./terraform output -raw k8s_cluster_service_account_email 2>/dev/null); \
+	if [ -z "$$SERVICE_ACCOUNT_EMAIL" ] || [ "$$SERVICE_ACCOUNT_EMAIL" = "null" ]; then \
+		echo "ERROR: Service account not found. Run 'make apply' first to create infrastructure."; \
+		exit 1; \
+	fi; \
+	echo "Service account: $$SERVICE_ACCOUNT_EMAIL"
+	@echo ""
+	@echo "Step 3: Enabling GCP ClusterSecretStore..."
+	@cd workloads/cluster-services/external-secrets && \
+		helm upgrade external-secrets . \
+		-n cluster-services \
+		-f values.yaml \
+		--set gcp.enabled=true \
+		--wait \
+		--timeout=2m
+	@echo ""
+	@echo "Step 4: Verifying ClusterSecretStore..."
+	@kubectl wait --for=condition=Ready clustersecretstore/gcp-secret-store --timeout=60s 2>/dev/null || true
+	@kubectl get clustersecretstore gcp-secret-store
+	@echo ""
+	@echo "============================================"
+	@echo "GCP connection configured successfully!"
+	@echo "============================================"
+	@echo ""
+	@echo "ClusterSecretStore 'gcp-secret-store' is ready."
+	@echo "External Secrets Operator can now sync secrets from GCP Secret Manager."
+	@echo ""
+	@echo "Verify with:"
+	@echo "  kubectl get clustersecretstore gcp-secret-store"
+	@echo "  kubectl describe clustersecretstore gcp-secret-store" 
 
 
 gitops: haproxy namespaces argocd helm-deps bootstrap
@@ -251,9 +333,11 @@ help:
 	@echo "GitOps (ArgoCD):"
 	@echo "  make namespaces    - Create K8s namespaces"
 	@echo "  make argocd        - Install ArgoCD"
-	@echo "  make bootstrap     - Apply App of Apps"
-	@echo "  make gitops        - Full GitOps setup"
+	@echo "  make install-external-secrets - Install External Secrets Operator"
+	@echo "  make setup-external-secrets-gcp - Configure GCP Secret Manager connection"
 	@echo "  make helm-deps     - Update Helm dependencies"
+	@echo "  push your files to remote repo"
+	@echo "  make bootstrap     - Apply App of Apps"
 	@echo ""
 	@echo "Combined:"
 	@echo "  make all           - Infrastructure + inventory + SSH"

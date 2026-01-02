@@ -1,3 +1,17 @@
+# Service Account for Kubernetes cluster nodes (Keyless Authentication)
+resource "google_service_account" "k8s_cluster_sa" {
+  account_id   = "k8s-cluster-sa"
+  display_name = "K8s Cluster Service Account"
+  description  = "Service account attached to Kubernetes cluster VMs for keyless authentication to GCP services"
+}
+
+# Grant Secret Manager access to the service account
+resource "google_project_iam_member" "k8s_cluster_sa_secret_accessor" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.k8s_cluster_sa.email}"
+}
+
 locals {
   # Generate master node names: master-01, master-02, master-03...
   master_nodes = var.cluster_nodes.enabled ? {
@@ -65,6 +79,11 @@ resource "google_compute_instance" "cluster" {
     subnetwork = var.subnetwork
   }
 
+  service_account {
+    email  = google_service_account.k8s_cluster_sa.email
+    scopes = ["cloud-platform"]
+  }
+
   metadata = {
     enable-oslogin = "TRUE"
   }
@@ -112,6 +131,11 @@ resource "google_compute_instance" "standalone" {
         nat_ip = each.key == "bastion" ? google_compute_address.bastion[0].address : null
       }
     }
+  }
+
+  service_account {
+    email  = google_service_account.k8s_cluster_sa.email
+    scopes = ["cloud-platform"]
   }
 
   metadata = {

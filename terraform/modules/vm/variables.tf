@@ -1,3 +1,8 @@
+variable "project_id" {
+  description = "GCP Project ID for service account creation"
+  type        = string
+}
+
 variable "subnetwork" {
   description = "The subnetwork self link to attach VMs"
   type        = string

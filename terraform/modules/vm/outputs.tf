@@ -85,4 +85,9 @@ output "standalone_node_ips" {
   value       = [for instance in google_compute_instance.standalone : instance.network_interface[0].network_ip]
 }
 
+output "k8s_cluster_service_account_email" {
+  description = "Email of the service account attached to Kubernetes cluster VMs"
+  value       = google_service_account.k8s_cluster_sa.email
+}
+
 

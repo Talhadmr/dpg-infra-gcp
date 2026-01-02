@@ -11,6 +11,7 @@ module "vpc" {
 module "vm" {
   source = "./modules/vm"
 
+  project_id = var.project_id
   subnetwork = module.vpc.subnetwork_self_link
   zone       = var.zone
   region     = var.region

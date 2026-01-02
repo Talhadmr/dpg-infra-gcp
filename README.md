@@ -260,6 +260,25 @@ To start the cluster again:
 gcloud compute instances start bastion master-01 master-02 master-03 worker-01 worker-02 --zone=europe-west3-a
 ```
 
+## Security & Authentication
+
+### Keyless Authentication (VM Identity)
+
+This project implements **keyless authentication** for GCP Secret Manager access:
+
+- **Service Account**: Terraform creates `k8s-cluster-sa` service account with `roles/secretmanager.secretAccessor` permission
+- **VM Attachment**: All cluster VMs (masters and workers) are automatically attached to this service account with `cloud-platform` scope
+- **External Secrets Operator**: Uses Application Default Credentials (ADC) to authenticate - no JSON keys required
+- **Zero-touch**: Authentication works automatically after infrastructure deployment
+
+Benefits:
+- No service account keys to manage or rotate
+- Automatic credential discovery via VM metadata server
+- Enhanced security (keys cannot be leaked)
+- Simpler operations
+
+See [External Secrets README](workloads/cluster-services/external-secrets/README.md) for details.
+
 ## Notes
 
 - All VMs use OS Login for SSH authentication
@@ -267,6 +286,7 @@ gcloud compute instances start bastion master-01 master-02 master-03 worker-01 w
 - NGINX Ingress uses NodePort (30080/30443) behind HAProxy
 - ArgoCD manages all workloads via GitOps
 - Kubespray runs in a Python venv (`.venv/`) for version compatibility
+- GCP Secret Manager access uses VM Identity (keyless authentication)
 - TODO: IP whitelisting for external access (currently open to 0.0.0.0/0)
 
 ## Documentation
@@ -274,6 +294,8 @@ gcloud compute instances start bastion master-01 master-02 master-03 worker-01 w
 - [Development Notes](docs/DEVELOPMENT_NOTES.md) - Detailed architecture and troubleshooting
 - [GitOps Guide](docs/GITOPS.md) - ArgoCD, App of Apps pattern, and Helm charts
 - [HAProxy Guide](docs/HAPROXY.md) - Edge router configuration and load balancing
+- [External Secrets Setup](docs/EXTERNAL_SECRETS_SETUP.md) - Complete guide for External Secrets Operator with GCP Secret Manager
+- [ArgoCD Private Repository](docs/ARGOCD_PRIVATE_REPO.md) - Configure ArgoCD to access private GitHub repositories
 - [Workloads README](workloads/README.md) - Helm charts quick reference
 
 
