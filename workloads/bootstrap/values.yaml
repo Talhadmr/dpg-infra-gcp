@@ -4,7 +4,7 @@
 # Git repository containing the workloads
 spec:
   source:
-    repoURL: https://github.com/42IstanbulAISociety/dpg-infra-gcp
+    repoURL: https://github.com/42IstanbulAISociety/dpg-infra-gcp.git
     targetRevision: HEAD
     path: workloads
 

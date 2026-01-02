@@ -6,7 +6,7 @@ VENV ?= .venv
 ANSIBLE_USER ?= $(shell gcloud compute os-login describe-profile --format="value(posixAccounts[0].username)" 2>/dev/null || echo "debian")
 
 # GitOps Configuration
-GIT_REPO_URL ?= https://github.com/Talhadmr/dpg-infra-gcp.git
+GIT_REPO_URL ?= https://github.com/42IstanbulAISociety/dpg-infra-gcp
 GIT_TARGET_REVISION ?= HEAD
 
 
@@ -174,6 +174,12 @@ argocd:
 	fi
 
 bootstrap:
+	@echo "==> Applying ArgoCD Repository Secret (ExternalSecret)..."
+	@if [ -z "$$KUBECONFIG" ]; then \
+		export KUBECONFIG=$$(pwd)/artifacts/kubeconfig; \
+	fi
+	@kubectl apply -f workloads/bootstrap/templates/repo-secret.yaml
+	@echo ""
 	@echo "==> Applying Bootstrap Application to ArgoCD..."
 	@if [ -d "$(VENV)" ]; then \
 		KUBECONFIG=$$(pwd)/artifacts/kubeconfig \
