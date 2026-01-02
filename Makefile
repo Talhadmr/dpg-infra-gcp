@@ -6,7 +6,7 @@ VENV ?= .venv
 ANSIBLE_USER ?= $(shell gcloud compute os-login describe-profile --format="value(posixAccounts[0].username)" 2>/dev/null || echo "debian")
 
 # GitOps Configuration
-GIT_REPO_URL ?= https://github.com/42IstanbulAISociety/dpg-infra-gcp
+GIT_REPO_URL ?= https://github.com/42IstanbulAISociety/dpg-infra-gcp.git
 GIT_TARGET_REVISION ?= HEAD
 
 
