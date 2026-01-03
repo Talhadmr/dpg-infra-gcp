@@ -178,8 +178,19 @@ bootstrap:
 	@if [ -z "$$KUBECONFIG" ]; then \
 		export KUBECONFIG=$$(pwd)/artifacts/kubeconfig; \
 	fi
-	@kubectl apply -f workloads/bootstrap/templates/repo-secret.yaml
-	@sleep 5
+	@kubectl apply -f ansible/argocd/templates/repo-secret.yaml
+	@echo "Waiting for ExternalSecret to sync..."
+	@kubectl wait --for=condition=Ready externalsecret/argocd-repo-creds -n argocd --timeout=60s || true
+	@echo "Waiting for secret to be created..."
+	@for i in $$(seq 1 30); do \
+		if kubectl get secret argocd-repo-creds-secret -n argocd >/dev/null 2>&1; then \
+			echo "Secret created successfully"; \
+			echo "ArgoCD will automatically detect this secret (label: argocd.argoproj.io/secret-type=repository)"; \
+			break; \
+		fi; \
+		echo "Waiting for secret... ($$i/30)"; \
+		sleep 2; \
+	done
 	@echo ""
 	@echo "==> Applying Bootstrap Application to ArgoCD..."
 	@if [ -d "$(VENV)" ]; then \
