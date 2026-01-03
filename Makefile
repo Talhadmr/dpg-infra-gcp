@@ -179,6 +179,7 @@ bootstrap:
 		export KUBECONFIG=$$(pwd)/artifacts/kubeconfig; \
 	fi
 	@kubectl apply -f workloads/bootstrap/templates/repo-secret.yaml
+	@sleep 5
 	@echo ""
 	@echo "==> Applying Bootstrap Application to ArgoCD..."
 	@if [ -d "$(VENV)" ]; then \
