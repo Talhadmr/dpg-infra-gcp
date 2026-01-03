@@ -44,6 +44,11 @@ spec:
       {{- range $.Values.syncPolicy.syncOptions }}
       - {{ . }}
       {{- end }}
+      {{- if .syncOptions }}
+      {{- range .syncOptions }}
+      - {{ . }}
+      {{- end }}
+      {{- end }}
     retry:
       limit: 5
       backoff:

@@ -96,6 +96,8 @@ applications:
     path: workloads/observability/prometheus
     enabled: true
     syncWave: "3"
+    syncOptions:
+      - ServerSideApply=true
 
   - name: grafana
     namespace: observability
@@ -121,4 +123,3 @@ applications:
     path: workloads/observability/kibana
     enabled: false
     syncWave: "4"
-
