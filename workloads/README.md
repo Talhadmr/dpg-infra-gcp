@@ -26,9 +26,16 @@ workloads/
 │   ├── redis/               # Redis Cache
 │   └── kafka/               # Message Broker
 │
-└── dev-platform/            # Developer Tools
-    ├── sonarqube/           # Code Quality
-    └── keycloak/            # Identity Management
+├── dev-platform/            # Developer Tools
+│   ├── sonarqube/           # Code Quality
+│   └── keycloak/            # Identity Management
+│
+└── observability/           # Monitoring & Logging
+    ├── prometheus/          # Metrics Collection
+    ├── grafana/             # Visualization
+    ├── elasticsearch/       # Log Storage
+    ├── logstash/            # Log Processing
+    └── kibana/              # Log Visualization
 ```
 
 ## App of Apps Pattern
@@ -84,8 +91,8 @@ Applications are deployed in order using ArgoCD sync waves:
 |------|-------------|
 | 1    | ingress-nginx, cert-manager |
 | 2    | istio, external-secrets, longhorn |
-| 3    | postgres, redis, kafka |
-| 4    | sonarqube, keycloak |
+| 3    | postgres, redis, kafka, prometheus, grafana, elasticsearch |
+| 4    | sonarqube, keycloak, logstash, kibana |
 
 ## Usage
 

@@ -1,0 +1,49 @@
+# Logstash Configuration
+
+replicas: 1
+
+# Resources
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+
+# Logstash pipeline configuration
+logstashConfig:
+  logstash.yml: |
+    http.host: "0.0.0.0"
+    xpack.monitoring.enabled: false
+
+# Pipeline configuration
+pipeline:
+  - pipeline.id: main
+    path.config: "/usr/share/logstash/pipeline/logstash.conf"
+
+logstashPipeline:
+  logstash.conf: |
+    input {
+      beats {
+        port => 5044
+      }
+    }
+    filter {
+      # Add your filters here
+    }
+    output {
+      elasticsearch {
+        hosts => ["elasticsearch-master:9200"]
+        index => "logs-%{+YYYY.MM.dd}"
+      }
+    }
+
+# Service
+service:
+  type: ClusterIP
+  ports:
+    - name: beats
+      port: 5044
+      targetPort: 5044
+

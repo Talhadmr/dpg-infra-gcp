@@ -1,0 +1,35 @@
+# Elasticsearch Configuration
+
+# Cluster configuration
+clusterName: "elasticsearch"
+nodeGroup: "master"
+
+# Replicas
+replicas: 1
+
+# Resources
+resources:
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+
+# Storage
+volumeClaimTemplate:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 50Gi
+
+# Security
+esConfig:
+  elasticsearch.yml: |
+    xpack.security.enabled: false
+    xpack.security.transport.ssl.enabled: false
+
+# Service
+service:
+  type: ClusterIP
+

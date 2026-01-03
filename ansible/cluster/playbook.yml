@@ -11,8 +11,8 @@
     namespaces:
       - name: argocd
         description: "ArgoCD GitOps controller"
-      - name: monitoring
-        description: "Prometheus, Grafana, and observability stack"
+      - name: observability
+        description: "Monitoring and logging stack (Prometheus, Grafana, ELK)"
       - name: data-layer
         description: "Databases and data services (PostgreSQL, Redis, Kafka)"
       - name: network-mesh

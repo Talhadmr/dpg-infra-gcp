@@ -55,7 +55,7 @@ applications:
   - name: longhorn
     namespace: cluster-services
     path: workloads/cluster-services/longhorn
-    enabled: true
+    enabled: false
     syncWave: "2"
 
   # Data Layer
@@ -88,5 +88,37 @@ applications:
     namespace: dev-platform
     path: workloads/dev-platform/keycloak
     enabled: false  
+    syncWave: "4"
+
+  # Observability - Monitoring
+  - name: prometheus
+    namespace: observability
+    path: workloads/observability/prometheus
+    enabled: true
+    syncWave: "3"
+
+  - name: grafana
+    namespace: observability
+    path: workloads/observability/grafana
+    enabled: true
+    syncWave: "3"
+
+  # Observability - Logging
+  - name: elasticsearch
+    namespace: observability
+    path: workloads/observability/elasticsearch
+    enabled: false
+    syncWave: "3"
+
+  - name: logstash
+    namespace: observability
+    path: workloads/observability/logstash
+    enabled: false
+    syncWave: "4"
+
+  - name: kibana
+    namespace: observability
+    path: workloads/observability/kibana
+    enabled: false
     syncWave: "4"
 
