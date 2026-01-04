@@ -1,8 +1,8 @@
-# Logstash Configuration
+# Bitnami Logstash Configuration
+# Refactored for Bitnami Chart compatibility
 
-replicas: 1
+replicaCount: 1
 
-# Resources
 resources:
   requests:
     cpu: 500m
@@ -11,39 +11,41 @@ resources:
     cpu: 1000m
     memory: 2Gi
 
-# Logstash pipeline configuration
-logstashConfig:
-  logstash.yml: |
-    http.host: "0.0.0.0"
-    xpack.monitoring.enabled: false
-
-# Pipeline configuration
-pipeline:
-  - pipeline.id: main
-    path.config: "/usr/share/logstash/pipeline/logstash.conf"
-
-logstashPipeline:
-  logstash.conf: |
-    input {
-      beats {
-        port => 5044
-      }
-    }
-    filter {
-      # Add your filters here
-    }
-    output {
-      elasticsearch {
-        hosts => ["elasticsearch-master:9200"]
-        index => "logs-%{+YYYY.MM.dd}"
-      }
-    }
-
-# Service
+# Service exposing Beats port
 service:
   type: ClusterIP
   ports:
-    - name: beats
+    beats:
       port: 5044
       targetPort: 5044
+      protocol: TCP
 
+# Persistence (Optional for Logstash queues)
+persistence:
+  enabled: false
+
+# Inputs
+input: |
+  beats {
+    port => 5044
+  }
+
+# Filters
+filter: |
+  # Add your filters here
+  # Example:
+  # if [type] == "syslog" {
+  #   grok {
+  #     match => { "message" => "%{SYSLOGTIMESTAMP:syslog_timestamp} %{SYSLOGHOST:syslog_hostname} %{DATA:syslog_program}(?:\[%{POSINT:syslog_pid}\])?: %{GREEDYDATA:syslog_message}" }
+  #   }
+  # }
+
+# Outputs
+output: |
+  elasticsearch {
+    hosts => ["elasticsearch-master:9200"]
+    index => "logstash-%{+YYYY.MM.dd}"
+    # Security disabled
+    ssl => false
+    ssl_certificate_verification => false
+  }

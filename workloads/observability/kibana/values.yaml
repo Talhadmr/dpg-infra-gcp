@@ -1,8 +1,8 @@
-# Kibana Configuration
+# Bitnami Kibana Configuration
+# Refactored for Bitnami Chart compatibility
 
-replicas: 1
+replicaCount: 1
 
-# Resources
 resources:
   requests:
     cpu: 500m
@@ -11,29 +11,28 @@ resources:
     cpu: 1000m
     memory: 2Gi
 
-# Elasticsearch connection
-elasticsearchHosts: "http://elasticsearch-master:9200"
+# Elasticsearch Connection
+elasticsearch:
+  hosts:
+    - elasticsearch-master
+  port: 9200
+  tls:
+    enabled: false
 
-# Security
-kibanaConfig:
+# Usage of internal Kibana user (if security were enabled)
+# serviceAccount:
+#   create: true
+
+# Extra Configuration
+extraConfiguration:
   kibana.yml: |
     server.host: "0.0.0.0"
-    elasticsearch.hosts: ["http://elasticsearch-master:9200"]
+    # Disable xpack security check in Kibana
     xpack.security.enabled: false
-
-# Ingress configuration
-ingress:
-  enabled: false  # Enable and configure for production
-  # annotations:
-  #   cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  # hosts:
-  #   - kibana.example.com
-  # tls:
-  #   - secretName: kibana-tls
-  #     hosts:
-  #       - kibana.example.com
 
 service:
   type: ClusterIP
   port: 5601
 
+ingress:
+  enabled: false

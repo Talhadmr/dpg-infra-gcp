@@ -1,35 +1,50 @@
-# Elasticsearch Configuration
+# Bitnami Elasticsearch Configuration
+# Refactored for Bitnami Chart compatibility
 
-# Cluster configuration
-clusterName: "elasticsearch"
-nodeGroup: "master"
+global:
+  kibanaEnabled: false
 
-# Replicas
-replicas: 1
-
-# Resources
-resources:
-  requests:
-    cpu: 1000m
-    memory: 2Gi
-  limits:
-    cpu: 2000m
-    memory: 4Gi
-
-# Storage
-volumeClaimTemplate:
-  accessModes: ["ReadWriteOnce"]
+# Cluster Topology: Single Node (Master only)
+master:
+  replicas: 1
+  heapSize: 1024m
+  
   resources:
     requests:
-      storage: 50Gi
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
 
-# Security
-esConfig:
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 50Gi
+
+# Disable specific node roles for single-node setup
+data:
+  replicas: 0
+coordinating:
+  replicas: 0
+ingest:
+  replicas: 0
+
+# Security Configuration
+security:
+  enabled: false # Disabling security as per previous config intent
+  tls:
+    enabled: false
+
+# Extra Configuration
+extraConfig:
   elasticsearch.yml: |
+    # Disable xpack security features
     xpack.security.enabled: false
     xpack.security.transport.ssl.enabled: false
+    xpack.security.http.ssl.enabled: false
 
-# Service
 service:
   type: ClusterIP
-
