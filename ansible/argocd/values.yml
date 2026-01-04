@@ -4,23 +4,23 @@ global:
 
 server:
   extraArgs:
-    - --insecure  # HTTPS sertifikas Ingress/Haproxy 
+    - --insecure 
   resources:
     limits:
-      cpu: 500m
-      memory: 256Mi
+      cpu: "1000m"
+      memory: "500Mi"
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: "500m"
+      memory: "256Mi"
 
 controller:
   resources:
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: "1000m"
+      memory: "2Gi"
     requests:
-      cpu: 100m
-      memory: 256Mi
+      cpu: "500m"
+      memory: "256Mi"
 
 repoServer:
   resources:
@@ -37,11 +37,11 @@ redis:
     enabled: false  
   resources:
     limits:
-      cpu: 200m
-      memory: 128Mi
+      cpu: "200m"
+      memory: "128Mi"
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: "50m"
+      memory: "64Mi"
 
 configs:
   rbac:
