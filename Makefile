@@ -310,8 +310,7 @@ gitops: haproxy namespaces argocd helm-deps bootstrap
 
 all: init apply inventory setup-ssh
 
-# Full cluster setup: Infrastructure + K8s + GitOps
-full-setup: apply inventory setup-ssh deploy kubeconfig renew-certs gitops
+full-setup: apply inventory setup-ssh deploy kubeconfig gitops
 
 clean:
 	rm -f artifacts/nodes.json

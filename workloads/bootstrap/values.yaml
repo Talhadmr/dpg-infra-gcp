@@ -109,17 +109,17 @@ applications:
   - name: elasticsearch
     namespace: observability
     path: workloads/observability/elasticsearch
-    enabled: false
+    enabled: true
     syncWave: "3"
 
   - name: logstash
     namespace: observability
     path: workloads/observability/logstash
-    enabled: false
+    enabled: true
     syncWave: "4"
 
   - name: kibana
     namespace: observability
     path: workloads/observability/kibana
-    enabled: false
+    enabled: true
     syncWave: "4"
