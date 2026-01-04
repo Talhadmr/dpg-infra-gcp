@@ -1,6 +1,3 @@
-# Bitnami Logstash Configuration
-# Refactored for Bitnami Chart compatibility
-
 replicaCount: 1
 
 resources:
@@ -11,7 +8,9 @@ resources:
     cpu: 1000m
     memory: 2Gi
 
-# Service exposing Beats port
+image:
+  debug: true
+
 service:
   type: ClusterIP
   ports:
@@ -20,32 +19,18 @@ service:
       targetPort: 5044
       protocol: TCP
 
-# Persistence (Optional for Logstash queues)
 persistence:
   enabled: false
 
-# Inputs
 input: |
   beats {
     port => 5044
   }
 
-# Filters
-filter: |
-  # Add your filters here
-  # Example:
-  # if [type] == "syslog" {
-  #   grok {
-  #     match => { "message" => "%{SYSLOGTIMESTAMP:syslog_timestamp} %{SYSLOGHOST:syslog_hostname} %{DATA:syslog_program}(?:\[%{POSINT:syslog_pid}\])?: %{GREEDYDATA:syslog_message}" }
-  #   }
-  # }
-
-# Outputs
 output: |
   elasticsearch {
     hosts => ["elasticsearch-master:9200"]
     index => "logstash-%{+YYYY.MM.dd}"
-    # Security disabled
     ssl => false
     ssl_certificate_verification => false
   }

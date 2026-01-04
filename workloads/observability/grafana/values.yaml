@@ -1,14 +1,4 @@
-# Grafana Configuration
-
-adminUser: admin
-adminPassword: admin  # Change in production!
-
-persistence:
-  enabled: true
-  storageClassName: ""
-  accessModes:
-    - ReadWriteOnce
-  size: 10Gi
+replicas: 1
 
 resources:
   requests:
@@ -18,30 +8,13 @@ resources:
     cpu: 500m
     memory: 512Mi
 
-# Prometheus datasource (auto-configured)
-datasources:
-  datasources.yaml:
-    apiVersion: 1
-    datasources:
-      - name: Prometheus
-        type: prometheus
-        access: proxy
-        url: http://kube-prometheus-stack-prometheus.observability:9090
-        isDefault: true
-
-# Ingress configuration
-ingress:
-  enabled: false  # Enable and configure for production
-  # annotations:
-  #   cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  # hosts:
-  #   - grafana.example.com
-  # tls:
-  #   - secretName: grafana-tls
-  #     hosts:
-  #       - grafana.example.com
+persistence:
+  enabled: true
+  size: 5Gi
+  accessModes: ["ReadWriteOnce"]
 
 service:
   type: ClusterIP
   port: 80
 
+adminPassword: "admin"

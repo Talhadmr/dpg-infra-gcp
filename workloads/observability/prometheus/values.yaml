@@ -1,57 +1,47 @@
-# Prometheus Stack Configuration
-# Using kube-prometheus-stack chart
+alertmanager:
+  alertmanagerSpec:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
 
-# Disable Grafana (we'll use separate Grafana instance)
-grafana:
-  enabled: false
-
-# Prometheus configuration
 prometheus:
   prometheusSpec:
-    retention: 30d
+    replicas: 1
+    retention: 7d
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+    
     storageSpec:
       volumeClaimTemplate:
         spec:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 50Gi
-    resources:
-      requests:
-        cpu: 500m
-        memory: 2Gi
-      limits:
-        cpu: 2000m
-        memory: 4Gi
+              storage: 20Gi
 
-# Alertmanager configuration
-alertmanager:
-  enabled: true
-  alertmanagerSpec:
-    storage:
-      volumeClaimTemplate:
-        spec:
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 10Gi
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        cpu: 500m
-        memory: 512Mi
+grafana:
+  enabled: false
 
-# Service monitors
-defaultRules:
-  create: true
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
 
-# Node exporter
-nodeExporter:
-  enabled: true
-
-# Kube state metrics
 kubeStateMetrics:
   enabled: true
-
+nodeExporter:
+  enabled: true

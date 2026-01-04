@@ -1,17 +1,13 @@
-# Bitnami Kibana Configuration
-# Refactored for Bitnami Chart compatibility
-
 replicaCount: 1
 
 resources:
   requests:
-    cpu: 500m
-    memory: 1Gi
+    cpu: 250m
+    memory: 512Mi
   limits:
     cpu: 1000m
-    memory: 2Gi
+    memory: 1Gi
 
-# Elasticsearch Connection
 elasticsearch:
   hosts:
     - elasticsearch-master
@@ -19,15 +15,9 @@ elasticsearch:
   tls:
     enabled: false
 
-# Usage of internal Kibana user (if security were enabled)
-# serviceAccount:
-#   create: true
-
-# Extra Configuration
 extraConfiguration:
   kibana.yml: |
     server.host: "0.0.0.0"
-    # Disable xpack security check in Kibana
     xpack.security.enabled: false
 
 service:
